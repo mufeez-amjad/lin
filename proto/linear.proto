@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package linear;
 
+option go_package = "./linear-proto";
+
 service Linear {
   rpc GetIssues (GetIssuesRequest) returns (GetIssuesResponse);
 }
