@@ -10,22 +10,19 @@ import (
 	"syscall"
 	"time"
 
-	// Proto
-	"lin_cli/proto"
+	linproto "lin_cli/proto"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/proto"
 
-	// Bubbles
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	bList "github.com/charmbracelet/bubbles/list"
 
-	// Tea
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	// Git
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 )
@@ -70,23 +67,85 @@ var keys = keyMap{
 type Issue struct {
 	identifier string
 	title      string
-	data       *proto.Issue
+	data       *linproto.Issue
 }
 
-func (i Issue) Title() string       { return i.identifier }
-func (i Issue) Description() string { return i.title }
-func (i Issue) Data() *proto.Issue  { return i.data }
-func (i Issue) FilterValue() string { return i.identifier + " " + i.title }
+func (i Issue) Title() string         { return i.identifier }
+func (i Issue) Description() string   { return i.title }
+func (i Issue) Data() *linproto.Issue { return i.data }
+func (i Issue) FilterValue() string   { return i.identifier + " " + i.title }
 
 type model struct {
 	list  bList.Model
 	help  help.Model
 	keys  keyMap
 	state sessionState
+
+	client  linproto.LinearClient
+	loading bool
 }
 
 func (m model) Init() tea.Cmd {
 	return nil
+}
+
+func writeProtobufToFile(filename string, messages []*linproto.Issue) error {
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	for _, msg := range messages {
+		data, err := proto.Marshal(msg)
+		if err != nil {
+			return err
+		}
+
+		_, err = file.Write(data)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func readProtobufFromFile(filepath string) ([]*linproto.Issue, bool, error) {
+	_, err := os.Stat(filepath)
+
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, false, nil
+		} else {
+			return nil, false, nil
+		}
+	}
+
+	file, err := os.Open(filepath)
+	if err != nil {
+		return nil, true, err
+	}
+	defer file.Close()
+
+	var messages []*linproto.Issue
+	for {
+		msg := new(linproto.Issue)
+		data := make([]byte, proto.Size(msg))
+		n, err := file.Read(data)
+		if err != nil {
+			break
+		}
+		if n == 0 {
+			break
+		}
+		if err := proto.Unmarshal(data, msg); err != nil {
+			return nil, true, err
+		}
+		messages = append(messages, msg)
+	}
+
+	return messages, true, nil
 }
 
 func checkoutBranch(branchName string) error {
@@ -238,57 +297,78 @@ func spawnServer() (int, error) {
 }
 
 func main() {
-	// Spawn the TypeScript server
-	childPid, err := spawnServer()
+	_, _, err := readProtobufFromFile("./cache")
 	if err != nil {
-		fmt.Println("Error spawning child process:", err)
-		os.Exit(1)
+		log.Fatalf("Failed to open cache file")
 	}
+
+	// Connect to the gRPC server and fetch issues async.
+	childPidChan := make(chan int, 1)
+	connChan := make(chan *grpc.ClientConn, 1)
+	go func() {
+		// Spawn the TypeScript server
+		spawnedPid, err := spawnServer()
+		if err != nil {
+			fmt.Println("Error spawning child process:", err)
+			childPidChan <- -1
+		}
+
+		childPidChan <- spawnedPid
+
+		time.Sleep(2 * time.Second)
+
+		// Connect to the TypeScript server
+		for {
+			connection, err := grpc.Dial(
+				"0.0.0.0:50051",
+				grpc.WithTransportCredentials(insecure.NewCredentials()),
+			)
+			if err != nil {
+				log.Printf("Failed to connect: %v. Retrying...", err)
+				time.Sleep(2 * time.Second) // Adjust the retry interval as needed
+				continue
+			}
+			connChan <- connection
+			break // Connection successful, exit the loop
+		}
+
+		fmt.Println("Connected to server")
+	}()
+
+	childPid := <-childPidChan
 
 	// Defer the termination of the child process
 	defer func() {
+		if childPid == -1 {
+			os.Exit(1)
+		}
+
 		err := syscall.Kill(childPid, syscall.SIGKILL)
 		if err != nil {
 			fmt.Println("Error killing child process:", err)
 		}
 	}()
 
-	time.Sleep(2 * time.Second)
-
-	// Connect to the TypeScript server
-	var conn *grpc.ClientConn
-	for {
-		var err error
-		conn, err = grpc.Dial(
-			"0.0.0.0:50051",
-			grpc.WithTransportCredentials(insecure.NewCredentials()),
-		)
-		if err != nil {
-			log.Printf("Failed to connect: %v. Retrying...", err)
-			time.Sleep(2 * time.Second) // Adjust the retry interval as needed
-			continue
-		}
-		break // Connection successful, exit the loop
-	}
+	conn := <-connChan
 	defer conn.Close()
-	fmt.Println("Connected to server")
+	client := linproto.NewLinearClient(conn)
 
-	client := proto.NewLinearClient(conn)
+	issuesResp := make(chan *linproto.GetIssuesResponse, 1)
+	go func() {
+		req := &linproto.GetIssuesRequest{
+			ApiKey: "",
+		}
 
-	req := &proto.GetIssuesRequest{
-		ApiKey: "",
-	}
-
-	resp, err := client.GetIssues(context.Background(), req)
-	if err != nil {
-		log.Fatalf("GetIssues failed: %v", err)
-	}
-
-	// Do stuff in the CLI
+		resp, err := client.GetIssues(context.Background(), req)
+		if err != nil {
+			log.Fatalf("GetIssues failed: %v", err)
+		}
+		issuesResp <- resp
+	}()
 
 	items := []bList.Item{}
 
-	for _, issue := range resp.Issues {
+	for _, issue := range (<-issuesResp).Issues {
 		items = append(items, Issue{
 			identifier: issue.GetIdentifier(),
 			title:      issue.GetTitle(),
@@ -300,6 +380,7 @@ func main() {
 		list:  bList.New(items, bList.NewDefaultDelegate(), 0, 0),
 		state: listView,
 		keys:  keys, help: help.New(),
+		client: client,
 	}
 
 	m.list.AdditionalShortHelpKeys = func() []key.Binding {
