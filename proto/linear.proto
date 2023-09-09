@@ -14,6 +14,7 @@ message Issue {
   // example: ENG-123
   string identifier = 3;
   string branchName = 4;
+  string url = 5;
 }
 
 message GetIssuesRequest {

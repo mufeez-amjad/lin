@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only ./src/index.ts",
     "build:proto": "./generate.sh",
-    "build": "rm -rf build && tsc"
+    "build": "rm -rf dist && tsc"
   },
   "keywords": [],
   "author": "",

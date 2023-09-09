@@ -1,1 +1,19 @@
+# Node.js and TypeScript specific
 node_modules/
+dist/
+*.log
+*.pid
+pnpm-debug.log*
+
+# Editor-specific files
+.vscode/
+.idea/
+*.sublime-*
+
+# Build output
+/build/
+/out/
+
+# Environmental variables
+.env
+

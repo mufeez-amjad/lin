@@ -2,7 +2,7 @@
 
 cd "$(dirname "$0")" 
 
-OUT_DIR=./src/generated
+OUT_DIR=./generated
 PROTO_DIR=../proto
 
 rm -rf ${OUT_DIR}

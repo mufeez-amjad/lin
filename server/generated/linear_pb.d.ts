@@ -15,6 +15,8 @@ export class Issue extends jspb.Message {
     setIdentifier(value: string): Issue;
     getBranchname(): string;
     setBranchname(value: string): Issue;
+    getUrl(): string;
+    setUrl(value: string): Issue;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): Issue.AsObject;
@@ -32,6 +34,7 @@ export namespace Issue {
         title: string,
         identifier: string,
         branchname: string,
+        url: string,
     }
 }
 
