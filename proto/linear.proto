@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package linear;
 
-option go_package = "./linear-proto";
+option go_package = "./proto";
 
 service Linear {
   rpc GetIssues (GetIssuesRequest) returns (GetIssuesResponse);
@@ -11,10 +11,9 @@ service Linear {
 message Issue {
   string id = 1;
   string title = 2;
-  string description = 3;
-  string state = 4;
-  string priority = 5;
-  string estimate = 6;
+  // example: ENG-123
+  string identifier = 3;
+  string branchName = 4;
 }
 
 message GetIssuesRequest {

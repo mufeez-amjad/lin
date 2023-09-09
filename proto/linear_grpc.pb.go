@@ -4,7 +4,7 @@
 // - protoc             v4.24.2
 // source: proto/linear.proto
 
-package linear_proto
+package proto
 
 import (
 	context "context"

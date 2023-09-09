@@ -11,14 +11,10 @@ export class Issue extends jspb.Message {
     setId(value: string): Issue;
     getTitle(): string;
     setTitle(value: string): Issue;
-    getDescription(): string;
-    setDescription(value: string): Issue;
-    getState(): string;
-    setState(value: string): Issue;
-    getPriority(): string;
-    setPriority(value: string): Issue;
-    getEstimate(): string;
-    setEstimate(value: string): Issue;
+    getIdentifier(): string;
+    setIdentifier(value: string): Issue;
+    getBranchname(): string;
+    setBranchname(value: string): Issue;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): Issue.AsObject;
@@ -34,10 +30,8 @@ export namespace Issue {
     export type AsObject = {
         id: string,
         title: string,
-        description: string,
-        state: string,
-        priority: string,
-        estimate: string,
+        identifier: string,
+        branchname: string,
     }
 }
 

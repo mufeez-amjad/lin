@@ -121,10 +121,8 @@ proto.linear.Issue.toObject = function(includeInstance, msg) {
   var f, obj = {
     id: jspb.Message.getFieldWithDefault(msg, 1, ""),
     title: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    description: jspb.Message.getFieldWithDefault(msg, 3, ""),
-    state: jspb.Message.getFieldWithDefault(msg, 4, ""),
-    priority: jspb.Message.getFieldWithDefault(msg, 5, ""),
-    estimate: jspb.Message.getFieldWithDefault(msg, 6, "")
+    identifier: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    branchname: jspb.Message.getFieldWithDefault(msg, 4, "")
   };
 
   if (includeInstance) {
@@ -171,19 +169,11 @@ proto.linear.Issue.deserializeBinaryFromReader = function(msg, reader) {
       break;
     case 3:
       var value = /** @type {string} */ (reader.readString());
-      msg.setDescription(value);
+      msg.setIdentifier(value);
       break;
     case 4:
       var value = /** @type {string} */ (reader.readString());
-      msg.setState(value);
-      break;
-    case 5:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setPriority(value);
-      break;
-    case 6:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setEstimate(value);
+      msg.setBranchname(value);
       break;
     default:
       reader.skipField();
@@ -228,31 +218,17 @@ proto.linear.Issue.serializeBinaryToWriter = function(message, writer) {
       f
     );
   }
-  f = message.getDescription();
+  f = message.getIdentifier();
   if (f.length > 0) {
     writer.writeString(
       3,
       f
     );
   }
-  f = message.getState();
+  f = message.getBranchname();
   if (f.length > 0) {
     writer.writeString(
       4,
-      f
-    );
-  }
-  f = message.getPriority();
-  if (f.length > 0) {
-    writer.writeString(
-      5,
-      f
-    );
-  }
-  f = message.getEstimate();
-  if (f.length > 0) {
-    writer.writeString(
-      6,
       f
     );
   }
@@ -296,10 +272,10 @@ proto.linear.Issue.prototype.setTitle = function(value) {
 
 
 /**
- * optional string description = 3;
+ * optional string identifier = 3;
  * @return {string}
  */
-proto.linear.Issue.prototype.getDescription = function() {
+proto.linear.Issue.prototype.getIdentifier = function() {
   return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ""));
 };
 
@@ -308,16 +284,16 @@ proto.linear.Issue.prototype.getDescription = function() {
  * @param {string} value
  * @return {!proto.linear.Issue} returns this
  */
-proto.linear.Issue.prototype.setDescription = function(value) {
+proto.linear.Issue.prototype.setIdentifier = function(value) {
   return jspb.Message.setProto3StringField(this, 3, value);
 };
 
 
 /**
- * optional string state = 4;
+ * optional string branchName = 4;
  * @return {string}
  */
-proto.linear.Issue.prototype.getState = function() {
+proto.linear.Issue.prototype.getBranchname = function() {
   return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
 };
 
@@ -326,44 +302,8 @@ proto.linear.Issue.prototype.getState = function() {
  * @param {string} value
  * @return {!proto.linear.Issue} returns this
  */
-proto.linear.Issue.prototype.setState = function(value) {
+proto.linear.Issue.prototype.setBranchname = function(value) {
   return jspb.Message.setProto3StringField(this, 4, value);
-};
-
-
-/**
- * optional string priority = 5;
- * @return {string}
- */
-proto.linear.Issue.prototype.getPriority = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 5, ""));
-};
-
-
-/**
- * @param {string} value
- * @return {!proto.linear.Issue} returns this
- */
-proto.linear.Issue.prototype.setPriority = function(value) {
-  return jspb.Message.setProto3StringField(this, 5, value);
-};
-
-
-/**
- * optional string estimate = 6;
- * @return {string}
- */
-proto.linear.Issue.prototype.getEstimate = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 6, ""));
-};
-
-
-/**
- * @param {string} value
- * @return {!proto.linear.Issue} returns this
- */
-proto.linear.Issue.prototype.setEstimate = function(value) {
-  return jspb.Message.setProto3StringField(this, 6, value);
 };
 
 
