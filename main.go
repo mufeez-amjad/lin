@@ -8,10 +8,12 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"runtime"
 	"syscall"
 	"time"
 
+	"lin_cli/internal/git"
+	"lin_cli/internal/tui"
+	"lin_cli/internal/util"
 	linproto "lin_cli/proto"
 
 	"google.golang.org/grpc"
@@ -24,9 +26,6 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
 )
 
 var docStyle = lipgloss.NewStyle().Margin(1, 2)
@@ -38,33 +37,6 @@ const (
 	listView sessionState = iota
 	issueView
 )
-
-type keyMap struct {
-	Enter key.Binding
-	C     key.Binding
-	Quit  key.Binding
-}
-
-func (k keyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.C, k.Enter}
-}
-
-func (k keyMap) FullHelp() [][]key.Binding {
-	return [][]key.Binding{
-		{k.C, k.Enter}, // first column
-	}
-}
-
-var keys = keyMap{
-	C: key.NewBinding(
-		key.WithKeys("c"),
-		key.WithHelp("c", "checkout branch"),
-	),
-	Enter: key.NewBinding(
-		key.WithKeys("enter"),
-		key.WithHelp("enter", "open issue"),
-	),
-}
 
 type Issue struct {
 	identifier string
@@ -80,7 +52,7 @@ func (i Issue) FilterValue() string   { return i.identifier + " " + i.title }
 type model struct {
 	list  bList.Model
 	help  help.Model
-	keys  keyMap
+	keys  tui.KeyMap
 	state sessionState
 
 	client  linproto.LinearClient
@@ -121,9 +93,12 @@ func writeProtobufToFile(filename string, messages []*linproto.Issue) error {
 
 func readProtobufFromFile(filepath string) ([]*linproto.Issue, error) {
 	_, err := os.Stat(filepath)
-
 	if err != nil {
-		return nil, err
+		if os.IsNotExist(err) {
+			return nil, nil
+		} else {
+			return nil, err
+		}
 	}
 
 	file, err := os.OpenFile(filepath, os.O_RDONLY, 0666)
@@ -144,7 +119,6 @@ func readProtobufFromFile(filepath string) ([]*linproto.Issue, error) {
 		}
 		itemSize := binary.LittleEndian.Uint32(buf)
 		offset += 4
-		fmt.Println("%v", itemSize)
 
 		item := make([]byte, itemSize)
 		if _, err := file.ReadAt(item, offset); err != nil {
@@ -172,75 +146,6 @@ func readProtobufFromFile(filepath string) ([]*linproto.Issue, error) {
 	return messages, nil
 }
 
-func checkoutBranch(branchName string) error {
-	// Get the current working directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("Error getting current working directory: %v\n", err)
-	}
-
-	r, err := git.PlainOpen(cwd)
-	if err != nil {
-		return fmt.Errorf("Error opening repository: %v\n", err)
-	}
-
-	refs, err := r.Branches()
-	if err != nil {
-		return fmt.Errorf("Error getting branches: %v\n", err)
-	}
-
-	branchExists := false
-	err = refs.ForEach(func(ref *plumbing.Reference) error {
-		if ref.Name().Short() == branchName {
-			branchExists = true
-		}
-		return nil
-	})
-
-	if err != nil {
-		return fmt.Errorf("Error checking branch existence: %v\n", err)
-	}
-
-	// If the branch doesn't exist, create it
-	if !branchExists {
-		// Create a new branch from the current HEAD
-		headRef, err := r.Head()
-		if err != nil {
-			fmt.Printf("Error getting HEAD reference: %v\n", err)
-			os.Exit(1)
-		}
-
-		newBranchRef := plumbing.NewBranchReferenceName(branchName)
-		branch := plumbing.NewHashReference(newBranchRef, headRef.Hash())
-
-		if err := r.Storer.SetReference(branch); err != nil {
-			fmt.Printf("Error creating branch: %v\n", err)
-			os.Exit(1)
-		}
-
-		fmt.Printf("Created branch '%s'\n", branchName)
-	}
-
-	// Checkout the branch
-	w, err := r.Worktree()
-	if err != nil {
-		fmt.Printf("Error getting worktree: %v\n", err)
-		os.Exit(1)
-	}
-
-	err = w.Checkout(&git.CheckoutOptions{
-		Branch: plumbing.ReferenceName(fmt.Sprintf("refs/heads/%s", branchName)),
-		Keep:   true,
-	})
-	if err != nil {
-		fmt.Printf("Error checking out branch: %v\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Printf("Checked out branch '%s'\n", branchName)
-	return nil
-}
-
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	issue := m.list.SelectedItem().(Issue).Data()
 
@@ -250,13 +155,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keys.C):
 			// TODO: handle multiple branches (based on issue attachments)
 			branchName := issue.GetBranchName()
-			err := checkoutBranch(branchName)
+			err := git.CheckoutBranch(branchName)
 			if err != nil {
 				fmt.Printf("%s", err)
 			}
 			return m, tea.Quit
 		case key.Matches(msg, m.keys.Enter):
-			openURL(issue.GetUrl())
+			util.OpenURL(issue.GetUrl())
 		}
 	case tea.WindowSizeMsg:
 		h, v := docStyle.GetFrameSize()
@@ -270,29 +175,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	return docStyle.Render(m.list.View())
-}
-
-func openURL(href string) error {
-	var cmd *exec.Cmd
-
-	// TODO: open desktop app instead of browser
-
-	// Determine the operating system and open the URL accordingly
-	switch runtime.GOOS {
-	case "darwin": // macOS
-		cmd = exec.Command("open", href)
-	case "windows":
-		cmd = exec.Command("cmd", "/c", "start", href)
-	case "linux":
-		cmd = exec.Command("xdg-open", href)
-	default:
-		return fmt.Errorf("unsupported platform")
-	}
-
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	return cmd.Run()
 }
 
 func spawnServer() (int, error) {
@@ -325,7 +207,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to open cache file")
 	}
-	fmt.Printf("%v\n", len(issues))
+	fmt.Printf("cached: %v\n", len(issues))
 
 	// Connect to the gRPC server and fetch issues async.
 	childPidChan := make(chan int, 1)
@@ -404,7 +286,6 @@ func main() {
 	items := []bList.Item{}
 
 	for _, issue := range issues {
-		fmt.Println("issue")
 		items = append(items, Issue{
 			identifier: issue.GetIdentifier(),
 			title:      issue.GetTitle(),
@@ -413,9 +294,10 @@ func main() {
 	}
 
 	m := model{
-		list:  bList.New(items, bList.NewDefaultDelegate(), 0, 0),
-		state: listView,
-		keys:  keys, help: help.New(),
+		list:   bList.New(items, bList.NewDefaultDelegate(), 0, 0),
+		state:  listView,
+		keys:   tui.Keys,
+		help:   help.New(),
 		client: client,
 	}
 

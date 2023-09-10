@@ -22,3 +22,6 @@ go.work
 
 # MacOS files
 **/.DS_Store
+
+# lin_cli files
+cache
