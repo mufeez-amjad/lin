@@ -1,59 +1,59 @@
 import {
-  Server,
-  ServerCredentials,
-  ServerUnaryCall,
-  sendUnaryData,
+    Server,
+    ServerCredentials,
+    ServerUnaryCall,
+    sendUnaryData,
 } from '@grpc/grpc-js';
 import { LinearClient, LinearDocument } from "@linear/sdk";
 import {
-  GetIssuesRequest,
-  GetIssuesResponse,
-  Issue
+    GetIssuesRequest,
+    GetIssuesResponse,
+    Issue
 } from '../generated/linear_pb';
 import { LinearService } from '../generated/linear_grpc_pb';
 
 const lin = new LinearClient({
-  apiKey: 'lin_api_Sx3vd6bk5REQmH0vnHGGsP4jHPkox7ycH5VYv6do',
-  apiUrl: 'http://localhost:8090/graphql',
+    apiKey: 'lin_api_WjXUkaLbd1tkt3CJ4Z8Rrf6ZXbOdYj2nJoDNYDxv',
+    apiUrl: 'http://localhost:8090/graphql',
 });
 
 const getIssues = async (
-  call: ServerUnaryCall<GetIssuesRequest, GetIssuesResponse>,
-  callback: sendUnaryData<GetIssuesResponse>,
+    call: ServerUnaryCall<GetIssuesRequest, GetIssuesResponse>,
+    callback: sendUnaryData<GetIssuesResponse>,
 ) => {
-  console.log('getIssues called');
-  const { getApiKey } = call.request;
-  const apiKey = getApiKey();
-  
-  const user = await lin.viewer;
-  const issues = await user.assignedIssues({
-      orderBy: LinearDocument.PaginationOrderBy.UpdatedAt,
-  });
+    console.log('getIssues called');
+    const { getApiKey } = call.request;
+    const apiKey = getApiKey();
 
-  const issueMessages: Issue[] = await Promise.all(issues.nodes.map(async (issue) => {
-    const issueMessage = new Issue();
-    issueMessage.setId(issue.id);
-    issueMessage.setTitle(issue.title);
-    issueMessage.setIdentifier(issue.identifier);
-    issueMessage.setBranchname(issue.branchName);
-    issueMessage.setUrl(issue.url);
-    return issueMessage;
-  }));
+    const user = await lin.viewer;
+    const issues = await user.assignedIssues({
+        orderBy: LinearDocument.PaginationOrderBy.UpdatedAt,
+    });
 
-  const response = new GetIssuesResponse();
-  response.setIssuesList(issueMessages);
+    const issueMessages: Issue[] = await Promise.all(issues.nodes.map(async (issue) => {
+        const issueMessage = new Issue();
+        issueMessage.setId(issue.id);
+        issueMessage.setTitle(issue.title);
+        issueMessage.setIdentifier(issue.identifier);
+        issueMessage.setBranchname(issue.branchName);
+        issueMessage.setUrl(issue.url);
+        return issueMessage;
+    }));
 
-  return callback(null, response);
+    const response = new GetIssuesResponse();
+    response.setIssuesList(issueMessages);
+
+    return callback(null, response);
 };
 
 const server = new Server();
 
 server.addService(LinearService, {
-  getIssues,
+    getIssues,
 });
 
 server.bindAsync('0.0.0.0:50051', ServerCredentials.createInsecure(), () => {
-  server.start();
+    server.start();
 
-  console.log('Server running at 0.0.0.0:50051');
+    console.log('Server running at 0.0.0.0:50051');
 });
