@@ -5,18 +5,13 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
-	"syscall"
-	"time"
 
 	"lin_cli/internal/git"
 	linproto "lin_cli/internal/proto"
+	"lin_cli/internal/rpc"
 	"lin_cli/internal/store"
 	"lin_cli/internal/tui"
 	"lin_cli/internal/util"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
@@ -53,7 +48,7 @@ type model struct {
 	keys  tui.KeyMap
 	state sessionState
 
-	client  linproto.LinearClient
+	client  chan *rpc.Client
 	loading bool
 }
 
@@ -75,6 +70,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				fmt.Printf("%s", err)
 			}
 			return m, tea.Quit
+		case key.Matches(msg, m.keys.CtrlR):
+			fmt.Println("refresh")
 		case key.Matches(msg, m.keys.Enter):
 			util.OpenURL(issue.GetUrl())
 		}
@@ -92,29 +89,23 @@ func (m model) View() string {
 	return docStyle.Render(m.list.View())
 }
 
-func spawnServer() (int, error) {
-	// Command to run the TypeScript server
-	cmd := exec.Command("node", "index.js")
-
-	// Set the current working directory to the directory containing the TypeScript server script
-	cmd.Dir = "server/dist"
-
-	// TODO: Remove after development
-	// Redirect standard output and error streams to the Go process's standard output
-	// and error streams
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	// Start the TypeScript server as a child process
-	if err := cmd.Start(); err != nil {
-		fmt.Printf("Error starting TypeScript server: %v\n", err)
-		return 0, err
+func fetchIssues(client linproto.LinearClient, issuesResp chan *linproto.GetIssuesResponse) {
+	req := &linproto.GetIssuesRequest{
+		ApiKey: "",
 	}
 
-	// Capture the child process ID
-	childPid := cmd.Process.Pid
+	resp, err := client.GetIssues(context.Background(), req)
+	if err != nil {
+		issuesResp <- &linproto.GetIssuesResponse{}
+		log.Fatalf("GetIssues failed: %v", err)
+	}
 
-	return childPid, nil
+	issuesResp <- resp
+
+	err = store.WriteProtobufToFile("./cache", resp.Issues)
+	if err != nil {
+		fmt.Printf("Failed to cache issues")
+	}
 }
 
 func main() {
@@ -124,77 +115,22 @@ func main() {
 	}
 	fmt.Printf("cached: %v\n", len(issues))
 
-	// Connect to the gRPC server and fetch issues async.
-	childPidChan := make(chan int, 1)
-	connChan := make(chan *grpc.ClientConn, 1)
+	client := make(chan *rpc.Client, 1)
 	go func() {
-		// Spawn the TypeScript server
-		spawnedPid, err := spawnServer()
-		if err != nil {
-			fmt.Println("Error spawning child process:", err)
-			childPidChan <- -1
-		}
-
-		childPidChan <- spawnedPid
-
-		time.Sleep(2 * time.Second)
-
-		// Connect to the TypeScript server
-		for {
-			connection, err := grpc.Dial(
-				"0.0.0.0:50051",
-				grpc.WithTransportCredentials(insecure.NewCredentials()),
-			)
-			if err != nil {
-				log.Printf("Failed to connect: %v. Retrying...", err)
-				time.Sleep(2 * time.Second) // Adjust the retry interval as needed
-				continue
-			}
-			connChan <- connection
-			break // Connection successful, exit the loop
-		}
-
-		fmt.Println("Connected to server")
+		client <- rpc.InitClient()
 	}()
-
-	childPid := <-childPidChan
-
-	// Defer the termination of the child process
+	// Wrap in a function so access is non-blocking
 	defer func() {
-		if childPid == -1 {
-			os.Exit(1)
-		}
-
-		err := syscall.Kill(childPid, syscall.SIGKILL)
-		if err != nil {
-			fmt.Println("Error killing child process:", err)
+		client := <-client
+		err := client.GetErr()
+		if err == nil {
+			client.Cleanup()
 		}
 	}()
-
-	conn := <-connChan
-	defer conn.Close()
-	client := linproto.NewLinearClient(conn)
 
 	if len(issues) == 0 {
 		issuesResp := make(chan *linproto.GetIssuesResponse, 1)
-		go func() {
-			req := &linproto.GetIssuesRequest{
-				ApiKey: "",
-			}
-
-			resp, err := client.GetIssues(context.Background(), req)
-			if err != nil {
-				issuesResp <- &linproto.GetIssuesResponse{}
-				log.Fatalf("GetIssues failed: %v", err)
-			}
-
-			issuesResp <- resp
-
-			err = store.WriteProtobufToFile("./cache", resp.Issues)
-			if err != nil {
-				fmt.Printf("Failed to cache issues")
-			}
-		}()
+		go fetchIssues((<-client).Get(), issuesResp)
 		issues = (<-issuesResp).Issues
 	}
 
@@ -227,6 +163,4 @@ func main() {
 		fmt.Println("Error running program:", err)
 		os.Exit(1)
 	}
-
-	syscall.Kill(childPid, syscall.SIGKILL)
 }
