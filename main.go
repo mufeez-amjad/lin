@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -102,8 +104,14 @@ func writeProtobufToFile(filename string, messages []*linproto.Issue) error {
 			return err
 		}
 
-		_, err = file.Write(data)
-		if err != nil {
+		buf := make([]byte, 4)
+		binary.LittleEndian.PutUint32(buf, uint32(len(data)))
+
+		if _, err := file.Write(buf); err != nil {
+			return err
+		}
+
+		if _, err := file.Write(data); err != nil {
 			return err
 		}
 	}
@@ -111,41 +119,57 @@ func writeProtobufToFile(filename string, messages []*linproto.Issue) error {
 	return nil
 }
 
-func readProtobufFromFile(filepath string) ([]*linproto.Issue, bool, error) {
+func readProtobufFromFile(filepath string) ([]*linproto.Issue, error) {
 	_, err := os.Stat(filepath)
 
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, false, nil
-		} else {
-			return nil, false, nil
-		}
+		return nil, err
 	}
 
-	file, err := os.Open(filepath)
+	file, err := os.OpenFile(filepath, os.O_RDONLY, 0666)
 	if err != nil {
-		return nil, true, err
+		return nil, err
 	}
 	defer file.Close()
 
-	var messages []*linproto.Issue
+	var offset int64
+	content := make([][]byte, 0)
 	for {
-		msg := new(linproto.Issue)
-		data := make([]byte, proto.Size(msg))
-		n, err := file.Read(data)
-		if err != nil {
-			break
+		buf := make([]byte, 4)
+		if _, err := file.ReadAt(buf, offset); err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, err
 		}
-		if n == 0 {
-			break
+		itemSize := binary.LittleEndian.Uint32(buf)
+		offset += 4
+		fmt.Println("%v", itemSize)
+
+		item := make([]byte, itemSize)
+		if _, err := file.ReadAt(item, offset); err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, err
 		}
-		if err := proto.Unmarshal(data, msg); err != nil {
-			return nil, true, err
-		}
-		messages = append(messages, msg)
+
+		content = append(content, item)
+		offset += int64(itemSize)
 	}
 
-	return messages, true, nil
+	var messages []*linproto.Issue
+
+	for _, item := range content {
+		t := new(linproto.Issue)
+		err = proto.Unmarshal(item, t)
+		if err != nil {
+			return nil, err
+		}
+		messages = append(messages, t)
+	}
+
+	return messages, nil
 }
 
 func checkoutBranch(branchName string) error {
@@ -297,10 +321,11 @@ func spawnServer() (int, error) {
 }
 
 func main() {
-	_, _, err := readProtobufFromFile("./cache")
+	issues, err := readProtobufFromFile("./cache")
 	if err != nil {
 		log.Fatalf("Failed to open cache file")
 	}
+	fmt.Printf("%v\n", len(issues))
 
 	// Connect to the gRPC server and fetch issues async.
 	childPidChan := make(chan int, 1)
@@ -353,22 +378,33 @@ func main() {
 	defer conn.Close()
 	client := linproto.NewLinearClient(conn)
 
-	issuesResp := make(chan *linproto.GetIssuesResponse, 1)
-	go func() {
-		req := &linproto.GetIssuesRequest{
-			ApiKey: "",
-		}
+	if len(issues) == 0 {
+		issuesResp := make(chan *linproto.GetIssuesResponse, 1)
+		go func() {
+			req := &linproto.GetIssuesRequest{
+				ApiKey: "",
+			}
 
-		resp, err := client.GetIssues(context.Background(), req)
-		if err != nil {
-			log.Fatalf("GetIssues failed: %v", err)
-		}
-		issuesResp <- resp
-	}()
+			resp, err := client.GetIssues(context.Background(), req)
+			if err != nil {
+				issuesResp <- &linproto.GetIssuesResponse{}
+				log.Fatalf("GetIssues failed: %v", err)
+			}
+
+			issuesResp <- resp
+
+			err = writeProtobufToFile("./cache", resp.Issues)
+			if err != nil {
+				fmt.Printf("Failed to cache issues")
+			}
+		}()
+		issues = (<-issuesResp).Issues
+	}
 
 	items := []bList.Item{}
 
-	for _, issue := range (<-issuesResp).Issues {
+	for _, issue := range issues {
+		fmt.Println("issue")
 		items = append(items, Issue{
 			identifier: issue.GetIdentifier(),
 			title:      issue.GetTitle(),
