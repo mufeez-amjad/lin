@@ -71,7 +71,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, tea.Quit
 		case key.Matches(msg, m.keys.CtrlR):
-			fmt.Println("refresh")
+			m.refresh()
 		case key.Matches(msg, m.keys.Enter):
 			util.OpenURL(issue.GetUrl())
 		}
@@ -108,32 +108,7 @@ func fetchIssues(client linproto.LinearClient, issuesResp chan *linproto.GetIssu
 	}
 }
 
-func main() {
-	issues, err := store.ReadProtobufFromFile("./cache")
-	if err != nil {
-		log.Fatalf("Failed to open cache file")
-	}
-	fmt.Printf("cached: %v\n", len(issues))
-
-	client := make(chan *rpc.Client, 1)
-	go func() {
-		client <- rpc.InitClient()
-	}()
-	// Wrap in a function so access is non-blocking
-	defer func() {
-		client := <-client
-		err := client.GetErr()
-		if err == nil {
-			client.Cleanup()
-		}
-	}()
-
-	if len(issues) == 0 {
-		issuesResp := make(chan *linproto.GetIssuesResponse, 1)
-		go fetchIssues((<-client).Get(), issuesResp)
-		issues = (<-issuesResp).Issues
-	}
-
+func (m *model) updateList(issues []*linproto.Issue) {
 	items := []bList.Item{}
 
 	for _, issue := range issues {
@@ -144,18 +119,55 @@ func main() {
 		})
 	}
 
-	m := model{
-		list:   bList.New(items, bList.NewDefaultDelegate(), 0, 0),
-		state:  listView,
-		keys:   tui.Keys,
-		help:   help.New(),
-		client: client,
+	m.list.SetItems(items)
+}
+
+func (m *model) refresh() {
+	issuesResp := make(chan *linproto.GetIssuesResponse, 1)
+	go fetchIssues((<-m.client).Get(), issuesResp)
+	issues := (<-issuesResp).Issues
+
+	m.updateList(issues)
+}
+
+func main() {
+	issues, err := store.ReadProtobufFromFile("./cache")
+	if err != nil {
+		log.Fatalf("Failed to open cache file")
 	}
 
+	client := make(chan *rpc.Client, 1)
+	go func() {
+		for {
+			client <- rpc.InitClient()
+		}
+	}()
+
+	// Wrap in a function so access is non-blocking
+	defer func() {
+		client := <-client
+		err := client.GetErr()
+		if err == nil {
+			client.Cleanup()
+		}
+	}()
+
+	m := model{
+		list:   bList.New([]bList.Item{}, bList.NewDefaultDelegate(), 0, 0),
+		state:  listView,
+		keys:   tui.Keys,
+		client: client,
+	}
 	m.list.AdditionalShortHelpKeys = func() []key.Binding {
 		return m.keys.ShortHelp()
 	}
 	m.list.Title = "Assigned Issues"
+
+	if len(issues) > 0 {
+		m.updateList(issues)
+	} else {
+		m.refresh()
+	}
 
 	p := tea.NewProgram(m, tea.WithAltScreen())
 

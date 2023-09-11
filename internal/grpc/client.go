@@ -1,4 +1,4 @@
-package rpc
+package grpc
 
 import (
 	"fmt"
@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"sync"
-	"syscall"
 	"time"
 
 	"lin_cli/internal/proto"
@@ -16,47 +15,14 @@ import (
 )
 
 var (
-	client *Client
+	client *proto.LinearClient
 
 	serverPid      int
 	initServerOnce sync.Once
-	initClientOnce sync.Once
 )
 
-type Client struct {
-	inner proto.LinearClient
-
-	conn      *grpc.ClientConn
-	serverPid int
-
-	err error
-}
-
-func (c *Client) Get() proto.LinearClient {
-	return c.inner
-}
-
-func InitClient() *Client {
-	initClientOnce.Do(func() {
-		pid, conn, err := connectToServer()
-		client = &Client{
-			inner:     proto.NewLinearClient(conn),
-			conn:      conn,
-			serverPid: pid,
-			err:       err,
-		}
-	})
-
+func GetClient() *proto.LinearClient {
 	return client
-}
-
-func (c *Client) GetErr() error {
-	return c.err
-}
-
-func (c *Client) Cleanup() {
-	c.conn.Close()
-	syscall.Kill(c.serverPid, syscall.SIGKILL)
 }
 
 // Spawns the Typescript server
@@ -64,7 +30,7 @@ func spawnServer() (int, error) {
 	cmd := exec.Command("node", "index.js")
 	cmd.Dir = "server/dist"
 
-	// cmd.Stdout = os.Stdout
+	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Start(); err != nil {
@@ -77,16 +43,18 @@ func spawnServer() (int, error) {
 }
 
 // Connects to the Typescript server through grpc
-func connectToServer() (pid int, conn *grpc.ClientConn, err error) {
-	pid = serverPid
+func connectToServer(pid chan int, conn chan *grpc.ClientConn) {
+	var err error
+	spawnedPid := serverPid
+
 	initServerOnce.Do(func() {
-		pid, err = spawnServer()
+		spawnedPid, err = spawnServer()
 		if err != nil {
 			fmt.Println("Error spawning child process:", err)
-			pid, conn = -1, nil
-			return
+			pid <- -1
 		}
 	})
+	pid <- spawnedPid
 
 	time.Sleep(1 * time.Second)
 
@@ -100,9 +68,9 @@ func connectToServer() (pid int, conn *grpc.ClientConn, err error) {
 			time.Sleep(2 * time.Second) // Adjust the retry interval as needed
 			continue
 		}
-		conn = connection
+		conn <- connection
 		break // Connection successful, exit the loop
 	}
 
-	return
+	fmt.Println("Connected to server")
 }

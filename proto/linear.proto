@@ -8,6 +8,11 @@ service Linear {
   rpc GetIssues (GetIssuesRequest) returns (GetIssuesResponse);
 }
 
+message Error {
+  string message = 1;
+  optional int32 code = 2;
+}
+
 message Issue {
   string id = 1;
   string title = 2;
@@ -24,3 +29,4 @@ message GetIssuesRequest {
 message GetIssuesResponse {
   repeated Issue issues = 1;
 }
+

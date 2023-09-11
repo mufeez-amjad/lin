@@ -13,7 +13,7 @@ import {
 import { LinearService } from '../generated/linear_grpc_pb';
 
 const lin = new LinearClient({
-    apiKey: 'lin_api_WjXUkaLbd1tkt3CJ4Z8Rrf6ZXbOdYj2nJoDNYDxv',
+    apiKey: 'lin_api_dVI2xjCSBETgZVVLMKhmzm7lemMtMbDzqourIb0i',
     apiUrl: 'http://localhost:8090/graphql',
 });
 
@@ -21,9 +21,8 @@ const getIssues = async (
     call: ServerUnaryCall<GetIssuesRequest, GetIssuesResponse>,
     callback: sendUnaryData<GetIssuesResponse>,
 ) => {
-    console.log('getIssues called');
-    const { getApiKey } = call.request;
-    const apiKey = getApiKey();
+    // const { getApiKey } = call.request;
+    // const apiKey = getApiKey();
 
     const user = await lin.viewer;
     const issues = await user.assignedIssues({
