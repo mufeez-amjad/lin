@@ -62,7 +62,7 @@ func (c *Client) Cleanup() {
 // Spawns the Typescript server
 func spawnServer() (int, error) {
 	cmd := exec.Command("node", "index.js")
-	cmd.Dir = "server/dist"
+	cmd.Dir = "../../server/dist"
 
 	// cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
