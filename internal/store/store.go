@@ -1,36 +1,26 @@
 package store
 
 import (
-	"encoding/binary"
+	"fmt"
 	"io"
 	"os"
-
-	linproto "lin_cli/internal/proto"
-
-	"google.golang.org/protobuf/proto"
 )
 
-func WriteProtobufToFile(filename string, messages []*linproto.Issue) error {
+type Serializable interface {
+	Serialize(w io.Writer) error
+	Deserialize(r io.Reader) error
+}
+
+func WriteObjectToFile(filename string, objects []Serializable) error {
 	file, err := os.Create(filename)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	for _, msg := range messages {
-		data, err := proto.Marshal(msg)
+	for _, obj := range objects {
+		err := obj.Serialize(file)
 		if err != nil {
-			return err
-		}
-
-		buf := make([]byte, 4)
-		binary.LittleEndian.PutUint32(buf, uint32(len(data)))
-
-		if _, err := file.Write(buf); err != nil {
-			return err
-		}
-
-		if _, err := file.Write(data); err != nil {
 			return err
 		}
 	}
@@ -38,7 +28,7 @@ func WriteProtobufToFile(filename string, messages []*linproto.Issue) error {
 	return nil
 }
 
-func ReadProtobufFromFile(filepath string) ([]*linproto.Issue, error) {
+func ReadObjectFromFile[T Serializable](filepath string) ([]T, error) {
 	_, err := os.Stat(filepath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -54,41 +44,16 @@ func ReadProtobufFromFile(filepath string) ([]*linproto.Issue, error) {
 	}
 	defer file.Close()
 
-	var offset int64
-	content := make([][]byte, 0)
+	var objects []T
 	for {
-		buf := make([]byte, 4)
-		if _, err := file.ReadAt(buf, offset); err != nil {
-			if err == io.EOF {
-				break
-			}
+		var obj T
+		fmt.Println("reading row")
+		if err := obj.Deserialize(file); err == io.EOF {
+			break
+		} else if err != nil {
 			return nil, err
 		}
-		itemSize := binary.LittleEndian.Uint32(buf)
-		offset += 4
-
-		item := make([]byte, itemSize)
-		if _, err := file.ReadAt(item, offset); err != nil {
-			if err == io.EOF {
-				break
-			}
-			return nil, err
-		}
-
-		content = append(content, item)
-		offset += int64(itemSize)
+		objects = append(objects, obj)
 	}
-
-	var messages []*linproto.Issue
-
-	for _, item := range content {
-		t := new(linproto.Issue)
-		err = proto.Unmarshal(item, t)
-		if err != nil {
-			return nil, err
-		}
-		messages = append(messages, t)
-	}
-
-	return messages, nil
+	return objects, nil
 }
