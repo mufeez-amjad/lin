@@ -30,6 +30,8 @@ var contentStyle = lipgloss.NewStyle().
 	BorderStyle(lipgloss.RoundedBorder()).
 	BorderForeground(lipgloss.Color("0"))
 
+var selectedItemStyle lipgloss.Style
+
 var helpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("0")).MarginBottom(1)
 
 var linearPurple = lipgloss.Color("#5e63d7")
@@ -71,13 +73,22 @@ func (m *model) updatePane() {
 	if m.activePane == contentPane {
 		m.activePane = listPane
 		m.issueView.Style = contentStyle
+
+		delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.
+			Foreground(linearPurple).BorderLeftForeground(linearPurple)
 	} else {
 		m.activePane = contentPane
 
 		m.issueView.Style = lipgloss.NewStyle().
 			BorderStyle(lipgloss.RoundedBorder()).
 			BorderForeground(linearPurple)
+
+		delegate.Styles.SelectedTitle = selectedItemStyle.
+			Foreground(lipgloss.Color("0")).
+			BorderLeftForeground(lipgloss.Color("0"))
 	}
+
+	delegate.Styles.SelectedDesc = delegate.Styles.SelectedTitle
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -222,6 +233,9 @@ var rootCmd = &cobra.Command{
 			Foreground(linearPurple).BorderLeftForeground(linearPurple)
 
 		delegate.Styles.SelectedDesc = delegate.Styles.SelectedTitle
+
+		selectedItemStyle = delegate.Styles.SelectedTitle
+
 		/*
 			delegate.Styles.SelectedDesc = delegate.Styles.SelectedDesc.
 				Foreground(linearPurple).BorderLeftForeground(linearPurple)
