@@ -31,7 +31,7 @@ func GetIssues(client GqlClient) ([]Issue, error) {
 	_ = `# @genqlient
 	query getAssignedIssues {
 	  viewer {
-		assignedIssues {
+		  assignedIssues(first: 5) {
 		  pageInfo {
 			hasNextPage
 			endCursor
