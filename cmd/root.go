@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"lin_cli/internal/config"
 	"lin_cli/internal/git"
 	"lin_cli/internal/linear"
 	"lin_cli/internal/tui"
@@ -222,6 +223,11 @@ var rootCmd = &cobra.Command{
 	Use:   "lin",
 	Short: "lin is a CLI tool to interact with Linear",
 	Run: func(cmd *cobra.Command, args []string) {
+		if config.GetConfig().APIKey == "" {
+			fmt.Println("Please run the 'auth' subcommand to add your Linear API key.")
+			return
+		}
+
 		/*
 			issues, err := store.ReadObjectFromFile[linear.Issue]("./cache")
 			if err != nil {

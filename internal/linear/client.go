@@ -1,6 +1,7 @@
 package linear
 
 import (
+	"lin_cli/internal/config"
 	"net/http"
 	"sync"
 
@@ -25,13 +26,15 @@ func (t *authedTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func initClient() {
+	config := config.GetConfig()
+
 	httpClient := http.Client{
 		Transport: &authedTransport{
-			key:     "lin_api_CWyCx6GctBCvCyxRYIDLA45g06XZuNgh5GBsqco3",
+			key:     config.APIKey,
 			wrapped: http.DefaultTransport,
 		},
 	}
-	graphqlClient = graphql.NewClient("http://localhost:8090/graphql", &httpClient)
+	graphqlClient = graphql.NewClient(config.GraphQLEndpoint, &httpClient)
 }
 
 func GetClient() GqlClient {

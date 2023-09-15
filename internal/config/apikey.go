@@ -42,11 +42,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
-		case tea.KeyEnter, tea.KeyCtrlC, tea.KeyEsc:
+		case tea.KeyEnter:
+			config.APIKey = m.textInput.Value()
+			m.textInput.Blur()
+			return m, tea.Quit
+		case tea.KeyCtrlC, tea.KeyEsc:
 			m.textInput.Blur()
 			return m, tea.Quit
 		}
-
 	// We handle errors just like any other message
 	case errMsg:
 		m.err = msg
