@@ -169,7 +169,6 @@ func issuesToItems(issues []*linear.Issue) []list.Item {
 	items := []list.Item{}
 
 	for _, issue := range issues {
-		fmt.Printf("%v", issue)
 		items = append(items, Issue{
 			data: issue,
 		})
@@ -179,7 +178,6 @@ func issuesToItems(issues []*linear.Issue) []list.Item {
 }
 
 func (m *model) updateList(issues []*linear.Issue) tea.Cmd {
-	fmt.Printf("Updating list items: %v\n", len(issues))
 	return m.list.SetItems(issuesToItems(issues))
 }
 
@@ -214,7 +212,9 @@ func (m *model) refresh() (cmd tea.Cmd) {
 	issues := <-issuesAsync
 
 	cmd = m.updateList(issues)
-	m.updateIssueView(issues[0])
+	if len(issues) > 0 {
+		m.updateIssueView(issues[0])
+	}
 
 	return cmd
 }

@@ -2,7 +2,6 @@ package store
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 )
 
@@ -64,10 +63,6 @@ func ReadObjectFromFile[T Serializable](filepath string, createT func() T) ([]T,
 
 	if err := scanner.Err(); err != nil {
 		return nil, err
-	}
-
-	for _, obj := range objects {
-		fmt.Printf("read: %v", obj)
 	}
 
 	return objects, nil

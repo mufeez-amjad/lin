@@ -27,9 +27,12 @@ func (i *Issue) Deserialize(data []byte) error {
 
 func GetIssues(client GqlClient) ([]*Issue, error) {
 	_ = `# @genqlient
-	query getAssignedIssues {
+	query getAssignedIssues(
+		# @genqlient(omitempty: true)
+		$cursor: String,
+	) {
 	  viewer {
-		  assignedIssues(first: 5) {
+		  assignedIssues(after: $cursor, orderBy: updatedAt) {
 		  pageInfo {
 			hasNextPage
 			endCursor
@@ -50,8 +53,9 @@ func GetIssues(client GqlClient) ([]*Issue, error) {
 	issues := []*Issue{}
 	objs := []store.Serializable{}
 
+	cursor := ""
 	for {
-		issuesResp, err := getAssignedIssues(context.Background(), graphqlClient)
+		issuesResp, err := getAssignedIssues(context.Background(), graphqlClient, cursor)
 		if err != nil {
 			return nil, err
 		}
@@ -74,7 +78,7 @@ func GetIssues(client GqlClient) ([]*Issue, error) {
 		if !pageInfo.HasNextPage {
 			break
 		}
-		// cursor = pageInfo.EndCursor
+		cursor = pageInfo.EndCursor
 	}
 
 	err := store.WriteObjectToFile("./cache", objs)

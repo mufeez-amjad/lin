@@ -15,8 +15,7 @@ func init() {
 
 var authCmd = &cobra.Command{
 	Use:   "auth",
-	Short: "Print the version number of Hugo",
-	Long:  `All software has versions. This is Hugo's`,
+	Short: "Configure credentials to connect to Linear's API",
 	Run: func(cmd *cobra.Command, args []string) {
 		p := tea.NewProgram(config.InitialModel())
 		if _, err := p.Run(); err != nil {
