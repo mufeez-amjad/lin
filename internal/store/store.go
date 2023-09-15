@@ -1,14 +1,14 @@
 package store
 
 import (
+	"bufio"
 	"fmt"
-	"io"
 	"os"
 )
 
 type Serializable interface {
-	Serialize(w io.Writer) error
-	Deserialize(r io.Reader) error
+	Serialize() ([]byte, error)
+	Deserialize(data []byte) error
 }
 
 func WriteObjectToFile(filename string, objects []Serializable) error {
@@ -19,8 +19,15 @@ func WriteObjectToFile(filename string, objects []Serializable) error {
 	defer file.Close()
 
 	for _, obj := range objects {
-		err := obj.Serialize(file)
+		data, err := obj.Serialize()
 		if err != nil {
+			return err
+		}
+
+		if _, err := file.Write(data); err != nil {
+			return err
+		}
+		if _, err := file.WriteString("\n"); err != nil {
 			return err
 		}
 	}
@@ -28,7 +35,7 @@ func WriteObjectToFile(filename string, objects []Serializable) error {
 	return nil
 }
 
-func ReadObjectFromFile[T Serializable](filepath string) ([]T, error) {
+func ReadObjectFromFile[T Serializable](filepath string, createT func() T) ([]T, error) {
 	_, err := os.Stat(filepath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -45,15 +52,23 @@ func ReadObjectFromFile[T Serializable](filepath string) ([]T, error) {
 	defer file.Close()
 
 	var objects []T
-	for {
-		var obj T
-		fmt.Println("reading row")
-		if err := obj.Deserialize(file); err == io.EOF {
-			break
-		} else if err != nil {
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		obj := createT()
+		data := scanner.Bytes()
+		if err := obj.Deserialize(data); err != nil {
 			return nil, err
 		}
 		objects = append(objects, obj)
 	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	for _, obj := range objects {
+		fmt.Printf("read: %v", obj)
+	}
+
 	return objects, nil
 }

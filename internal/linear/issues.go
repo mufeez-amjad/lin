@@ -3,7 +3,6 @@ package linear
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"lin_cli/internal/store"
 	"log"
 )
@@ -17,17 +16,16 @@ type Issue struct {
 	Url         string
 }
 
-func (i Issue) Serialize(w io.Writer) error {
-	encoder := json.NewEncoder(w)
-	return encoder.Encode(i)
+func (i *Issue) Serialize() ([]byte, error) {
+	return json.Marshal(i)
 }
 
-func (i Issue) Deserialize(r io.Reader) error {
-	decoder := json.NewDecoder(r)
-	return decoder.Decode(&i)
+func (i *Issue) Deserialize(data []byte) error {
+	err := json.Unmarshal(data, i)
+	return err
 }
 
-func GetIssues(client GqlClient) ([]Issue, error) {
+func GetIssues(client GqlClient) ([]*Issue, error) {
 	_ = `# @genqlient
 	query getAssignedIssues {
 	  viewer {
@@ -49,7 +47,7 @@ func GetIssues(client GqlClient) ([]Issue, error) {
 	}
 	`
 
-	issues := []Issue{}
+	issues := []*Issue{}
 	objs := []store.Serializable{}
 
 	for {
@@ -60,7 +58,7 @@ func GetIssues(client GqlClient) ([]Issue, error) {
 
 		assignedIssuesConnection := issuesResp.Viewer.AssignedIssues
 		for _, issue := range assignedIssuesConnection.Nodes {
-			issue := Issue{
+			issue := &Issue{
 				Id:          issue.Id,
 				Identifier:  issue.Identifier,
 				Title:       issue.Title,

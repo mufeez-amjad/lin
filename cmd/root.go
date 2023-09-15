@@ -2,11 +2,13 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"lin_cli/internal/config"
 	"lin_cli/internal/git"
 	"lin_cli/internal/linear"
+	"lin_cli/internal/store"
 	"lin_cli/internal/tui"
 	"lin_cli/internal/util"
 
@@ -48,12 +50,12 @@ const (
 )
 
 type Issue struct {
-	data linear.Issue
+	data *linear.Issue
 }
 
 func (i Issue) Title() string       { return i.data.Identifier }
 func (i Issue) Description() string { return i.data.Title }
-func (i Issue) Data() linear.Issue  { return i.data }
+func (i Issue) Data() *linear.Issue { return i.data }
 func (i Issue) FilterValue() string { return i.Title() + i.Description() }
 
 type model struct {
@@ -93,7 +95,7 @@ func (m *model) updatePane() {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var issue linear.Issue
+	var issue *linear.Issue
 
 	selectedItem := m.list.SelectedItem()
 	if selectedItem != nil {
@@ -147,8 +149,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, tea.Quit
 		case key.Matches(msg, m.keys.CtrlR):
-			m.refresh()
-			break
+			return m, m.refresh()
 		case key.Matches(msg, m.keys.Enter):
 			util.OpenURL(issue.Url)
 			break
@@ -164,19 +165,25 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m *model) updateList(issues []linear.Issue) {
+func issuesToItems(issues []*linear.Issue) []list.Item {
 	items := []list.Item{}
 
 	for _, issue := range issues {
+		fmt.Printf("%v", issue)
 		items = append(items, Issue{
 			data: issue,
 		})
 	}
 
-	m.list.SetItems(items)
+	return items
 }
 
-func (m *model) updateIssueView(issue linear.Issue) error {
+func (m *model) updateList(issues []*linear.Issue) tea.Cmd {
+	fmt.Printf("Updating list items: %v\n", len(issues))
+	return m.list.SetItems(issuesToItems(issues))
+}
+
+func (m *model) updateIssueView(issue *linear.Issue) error {
 	renderer, err := glamour.NewTermRenderer(
 		glamour.WithAutoStyle(),
 		glamour.WithWordWrap(m.issueView.Width),
@@ -195,8 +202,8 @@ func (m *model) updateIssueView(issue linear.Issue) error {
 	return nil
 }
 
-func (m *model) refresh() {
-	issuesAsync := make(chan []linear.Issue, 1)
+func (m *model) refresh() (cmd tea.Cmd) {
+	issuesAsync := make(chan []*linear.Issue, 1)
 	go func() {
 		i, err := linear.GetIssues(m.gqlClient)
 		if err != nil {
@@ -205,8 +212,11 @@ func (m *model) refresh() {
 		issuesAsync <- i
 	}()
 	issues := <-issuesAsync
-	m.updateList(issues)
+
+	cmd = m.updateList(issues)
 	m.updateIssueView(issues[0])
+
+	return cmd
 }
 
 func (m model) View() string {
@@ -228,12 +238,12 @@ var rootCmd = &cobra.Command{
 			return
 		}
 
-		/*
-			issues, err := store.ReadObjectFromFile[linear.Issue]("./cache")
-			if err != nil {
-				log.Fatalf("Failed to open cache file: %v", err)
-			}
-		*/
+		issues, err := store.ReadObjectFromFile[*linear.Issue]("./cache", func() *linear.Issue {
+			return &linear.Issue{}
+		})
+		if err != nil {
+			log.Fatalf("Failed to open cache file: %v", err)
+		}
 
 		delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.
 			Foreground(linearPurple).BorderLeftForeground(linearPurple)
@@ -241,11 +251,6 @@ var rootCmd = &cobra.Command{
 		delegate.Styles.SelectedDesc = delegate.Styles.SelectedTitle
 
 		selectedItemStyle = delegate.Styles.SelectedTitle
-
-		/*
-			delegate.Styles.SelectedDesc = delegate.Styles.SelectedDesc.
-				Foreground(linearPurple).BorderLeftForeground(linearPurple)
-		*/
 
 		m := model{
 			list:      list.New([]list.Item{}, delegate, 0, 0),
@@ -265,11 +270,12 @@ var rootCmd = &cobra.Command{
 		m.list.Styles.Title = m.list.Styles.Title.Background(linearPurple)
 		m.list.SetShowHelp(false)
 
-		// if len(issues) > 0 {
-		//	m.updateList(issues)
-		//} else {
-		m.refresh()
-		//}
+		if len(issues) > 0 {
+			m.updateList(issues)
+			m.updateIssueView(issues[0])
+		} else {
+			m.refresh()
+		}
 
 		p := tea.NewProgram(m, tea.WithAltScreen())
 
