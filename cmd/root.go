@@ -8,7 +8,6 @@ import (
 	"lin_cli/internal/config"
 	"lin_cli/internal/git"
 	"lin_cli/internal/linear"
-	"lin_cli/internal/store"
 	"lin_cli/internal/tui"
 	"lin_cli/internal/util"
 
@@ -66,6 +65,7 @@ type model struct {
 	activePane pane
 
 	gqlClient linear.GqlClient
+	loading   bool
 }
 
 func (m model) Init() tea.Cmd {
@@ -238,9 +238,7 @@ var rootCmd = &cobra.Command{
 			return
 		}
 
-		issues, err := store.ReadObjectFromFile[*linear.Issue]("./cache", func() *linear.Issue {
-			return &linear.Issue{}
-		})
+		issues, needRefresh, err := linear.LoadIssues(linear.GetClient())
 		if err != nil {
 			log.Fatalf("Failed to open cache file: %v", err)
 		}
@@ -258,6 +256,7 @@ var rootCmd = &cobra.Command{
 			issueView: viewport.New(issueViewWidth, 50),
 			gqlClient: linear.GetClient(),
 			help:      help.New(),
+			loading:   needRefresh,
 		}
 		m.help.ShortSeparator = " • "
 
@@ -273,7 +272,10 @@ var rootCmd = &cobra.Command{
 		if len(issues) > 0 {
 			m.updateList(issues)
 			m.updateIssueView(issues[0])
-		} else {
+		}
+
+		// TODO: make this non-blocking
+		if needRefresh || len(issues) == 0 {
 			m.refresh()
 		}
 

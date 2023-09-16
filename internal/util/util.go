@@ -10,8 +10,6 @@ import (
 func OpenURL(href string) error {
 	var cmd *exec.Cmd
 
-	// TODO: open desktop app instead of browser
-
 	// Determine the operating system and open the URL accordingly
 	switch runtime.GOOS {
 	case "darwin": // macOS

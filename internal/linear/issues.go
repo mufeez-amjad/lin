@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"lin_cli/internal/store"
 	"log"
+	"time"
+
+	"github.com/Khan/genqlient/graphql"
 )
 
 type Issue struct {
@@ -93,4 +96,17 @@ func GetIssues(client GqlClient) ([]*Issue, error) {
 	}
 
 	return issues, nil
+}
+
+// Retrieves issues from cache
+func LoadIssues(client graphql.Client) (issues []*Issue, needRefresh bool, err error) {
+	var lastCached time.Time
+	issues, lastCached, err = store.ReadObjectFromFile[*Issue]("./cache", func() *Issue {
+		return &Issue{}
+	})
+
+	isFresh := lastCached.Add(time.Hour * 12).Before(time.Now())
+	needRefresh = isFresh || len(issues) == 0
+
+	return issues, needRefresh, err
 }
