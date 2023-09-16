@@ -3,6 +3,8 @@ package store
 import (
 	"bufio"
 	"os"
+
+	"github.com/adrg/xdg"
 )
 
 type Serializable interface {
@@ -10,8 +12,17 @@ type Serializable interface {
 	Deserialize(data []byte) error
 }
 
+func getCache(filename string) (string, error) {
+	return xdg.CacheFile("/lin/" + filename)
+}
+
 func WriteObjectToFile(filename string, objects []Serializable) error {
-	file, err := os.Create(filename)
+	path, err := getCache(filename)
+	if err != nil {
+		return err
+	}
+
+	file, err := os.Create(path)
 	if err != nil {
 		return err
 	}
@@ -34,8 +45,13 @@ func WriteObjectToFile(filename string, objects []Serializable) error {
 	return nil
 }
 
-func ReadObjectFromFile[T Serializable](filepath string, createT func() T) ([]T, error) {
-	_, err := os.Stat(filepath)
+func ReadObjectFromFile[T Serializable](filename string, createT func() T) ([]T, error) {
+	path, err := getCache(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -44,7 +60,7 @@ func ReadObjectFromFile[T Serializable](filepath string, createT func() T) ([]T,
 		}
 	}
 
-	file, err := os.OpenFile(filepath, os.O_RDONLY, 0666)
+	file, err := os.OpenFile(path, os.O_RDONLY, 0666)
 	if err != nil {
 		return nil, err
 	}

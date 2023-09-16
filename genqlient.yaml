@@ -11,4 +11,6 @@ package: linear
 bindings:
   DateTime:
     type: time.Time
+  TimelessDate:
+    type: time.Time
 

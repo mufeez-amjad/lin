@@ -29,24 +29,30 @@ func GetIssues(client GqlClient) ([]*Issue, error) {
 	_ = `# @genqlient
 	query getAssignedIssues(
 		# @genqlient(omitempty: true)
-		$cursor: String,
+		$cursor: String
 	) {
-	  viewer {
-		  assignedIssues(after: $cursor, orderBy: updatedAt) {
-		  pageInfo {
-			hasNextPage
-			endCursor
-		  }
-		  nodes {
-			id
-			identifier
-			title
-			description
-			branchName
-			url
-		  }
+		viewer {
+			assignedIssues(after: $cursor, orderBy: updatedAt, filter: {
+				state: {
+				  type: {
+					in: ["started", "backlog"]
+				  }
+				}
+			}) {
+				pageInfo {
+				  hasNextPage
+				  endCursor
+				}
+				nodes {
+				  id
+				  identifier
+				  title
+				  description
+				  branchName
+				  url
+				}
+			}
 		}
-	  }
 	}
 	`
 
