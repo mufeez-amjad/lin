@@ -120,8 +120,9 @@ func init() {
 }
 
 var checkoutCmd = &cobra.Command{
-	Use:   "checkout",
-	Short: "List available branches to checkout",
+	Use:     "checkout",
+	Aliases: []string{"co"},
+	Short:   "List available branches to checkout",
 	Run: func(cmd *cobra.Command, args []string) {
 		issues, _, err := linear.LoadIssues(linear.GetClient())
 		if err != nil {
