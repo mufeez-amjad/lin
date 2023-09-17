@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"strings"
 
 	"lin_cli/internal/config"
 	"lin_cli/internal/git"
@@ -48,6 +50,7 @@ const (
 	contentPane
 )
 
+// list.Item type
 type Issue struct {
 	data *linear.Issue
 }
@@ -56,6 +59,92 @@ func (i Issue) Title() string       { return i.data.Identifier }
 func (i Issue) Description() string { return i.data.Title }
 func (i Issue) Data() *linear.Issue { return i.data }
 func (i Issue) FilterValue() string { return i.Title() + i.Description() }
+
+func splitIntoChunks(inputString string, chunkSize int) []string {
+	words := strings.Fields(inputString) // Split the input into words
+	chunks := []string{}
+	currentChunk := ""
+
+	for _, word := range words {
+		// If adding the current word to the current chunk would exceed the chunk size,
+		// add the current chunk to the list of chunks and start a new chunk.
+		if len(currentChunk)+len(word)+1 > chunkSize {
+			chunks = append(chunks, strings.TrimSpace(currentChunk))
+			currentChunk = ""
+		}
+
+		// Add the word to the current chunk (with a space if not empty).
+		if currentChunk != "" {
+			currentChunk += " "
+		}
+		currentChunk += word
+	}
+
+	// Add the last chunk (if any).
+	if currentChunk != "" {
+		chunks = append(chunks, strings.TrimSpace(currentChunk))
+	}
+
+	return chunks
+}
+
+type itemDelegate struct{}
+
+func (d itemDelegate) Height() int                               { return 3 }
+func (d itemDelegate) Spacing() int                              { return 1 }
+func (d itemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { return nil }
+func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
+	borderStyle := lipgloss.NormalBorder()
+
+	baseStyle := lipgloss.NewStyle().
+		MarginLeft(2).
+		PaddingLeft(1).
+		BorderLeft(true).
+		BorderStyle(borderStyle)
+
+	titleStyle := baseStyle.Copy().Foreground(lipgloss.Color("#ffffff"))
+	descriptionStyle := baseStyle.Copy().Foreground(lipgloss.Color("#808080"))
+
+	i, ok := listItem.(Issue)
+	if !ok {
+		return
+	}
+
+	var title, description string
+	description = i.data.Title
+
+	selected := m.Cursor() == index%m.Paginator.PerPage
+
+	if selected {
+		title = titleStyle.
+			Foreground(linearPurple).
+			BorderLeftForeground(linearPurple).
+			Render(i.data.Identifier)
+	} else {
+		title = titleStyle.Render(i.data.Identifier)
+	}
+
+	fmt.Fprintf(w, title)
+
+	chunks := splitIntoChunks(description, 20)
+	for i, chunk := range chunks {
+		if selected {
+			chunk = descriptionStyle.
+				Foreground(linearPurple).
+				BorderLeftForeground(linearPurple).
+				Render(chunk)
+		} else {
+			chunk = descriptionStyle.Render(chunk)
+		}
+
+		fmt.Fprintf(w, "\n%s", chunk)
+
+		if i >= 1 && len(chunks) > 2 {
+			fmt.Fprintf(w, lipgloss.NewStyle().Foreground(lipgloss.Color("#808080")).Render("…"))
+			break
+		}
+	}
+}
 
 type model struct {
 	list       list.Model
@@ -156,6 +245,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case tea.WindowSizeMsg:
 		h, v := listStyle.GetFrameSize()
+		fmt.Printf("%vx%v", h, v)
 		m.list.SetSize(msg.Width-h, msg.Height-v)
 	}
 
@@ -250,8 +340,10 @@ var rootCmd = &cobra.Command{
 
 		selectedItemStyle = delegate.Styles.SelectedTitle
 
+		delegate.Styles.NormalDesc = delegate.Styles.NormalDesc.MaxWidth(30)
+
 		m := model{
-			list:      list.New([]list.Item{}, delegate, 0, 0),
+			list:      list.New([]list.Item{}, itemDelegate{}, 0, 0),
 			keys:      tui.Keys,
 			issueView: viewport.New(issueViewWidth, 50),
 			gqlClient: linear.GetClient(),

@@ -14,12 +14,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// TODO: switch to using list with custom itemDelegate
 type checkout struct {
 	cursor  int
 	choice  *linear.Issue
 	choices []*linear.Issue
 
 	paginator paginator.Model
+	quitting  bool
 }
 
 func (m checkout) Init() tea.Cmd {
@@ -31,6 +33,7 @@ func (m checkout) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q", "esc":
+			m.quitting = true
 			return m, tea.Quit
 
 		case "enter":
