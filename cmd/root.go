@@ -126,7 +126,7 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 
 	fmt.Fprintf(w, title)
 
-	chunks := splitIntoChunks(description, 20)
+	chunks := splitIntoChunks(description, 30)
 	for i, chunk := range chunks {
 		if selected {
 			chunk = descriptionStyle.
