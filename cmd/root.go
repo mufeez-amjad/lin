@@ -32,7 +32,8 @@ var listStyle = lipgloss.NewStyle().
 
 var contentStyle = lipgloss.NewStyle().
 	BorderStyle(lipgloss.RoundedBorder()).
-	BorderForeground(lipgloss.Color("0"))
+	BorderForeground(lipgloss.Color("0")).
+	PaddingRight(2)
 
 var selectedItemStyle lipgloss.Style
 
@@ -231,6 +232,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			nextIssue := items[nextIdx].(Issue).data
 			m.updateIssueView(nextIssue)
 		case key.Matches(msg, m.keys.C):
+			// Ignore if user is filtering
+			if m.list.SettingFilter() {
+				break
+			}
+
 			// TODO: handle multiple branches (based on issue attachments)
 			err := git.CheckoutBranch(issue.BranchName)
 			if err != nil {
@@ -240,13 +246,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keys.CtrlR):
 			return m, m.refresh()
 		case key.Matches(msg, m.keys.Enter):
+			// Ignore if user is filtering
+			if m.list.SettingFilter() {
+				break
+			}
+
 			util.OpenURL(issue.Url)
 			break
 		}
 	case tea.WindowSizeMsg:
 		h, v := listStyle.GetFrameSize()
-		fmt.Printf("%vx%v", h, v)
-		m.list.SetSize(msg.Width-h, msg.Height-v)
+		m.list.SetSize(msg.Width-h, msg.Height-v-2)
 	}
 
 	var cmd tea.Cmd
@@ -273,14 +283,16 @@ func (m *model) updateList(issues []*linear.Issue) tea.Cmd {
 
 func (m *model) updateIssueView(issue *linear.Issue) error {
 	renderer, err := glamour.NewTermRenderer(
-		glamour.WithAutoStyle(),
-		glamour.WithWordWrap(m.issueView.Width),
+		glamour.WithStyles(glamour.DraculaStyleConfig),
+		glamour.WithWordWrap(m.issueView.Width-2),
 	)
 	if err != nil {
 		return err
 	}
 
-	str, err := renderer.Render(issue.Description)
+	content := fmt.Sprintf("# %s\n\n%s", issue.Title, issue.Description)
+
+	str, err := renderer.Render(content)
 	if err != nil {
 		return err
 	}
