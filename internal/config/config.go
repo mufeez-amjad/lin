@@ -37,7 +37,7 @@ func GetConfig() Config {
 			}
 		}
 		// Defaults
-		viper.SetDefault("GraphQLEndpoint", "http://localhost:8090/graphql")
+		viper.SetDefault("GraphQLEndpoint", "https://api.linear.app/graphql")
 
 		// Unmarshal the configuration into the struct
 		if err := viper.Unmarshal(&config); err != nil {
