@@ -1,0 +1,31 @@
+builds:
+  - binary: lin
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=0
+
+release:
+  prerelease: auto
+
+universal_binaries:
+  - replace: true
+
+brews:
+  -
+    name: lin
+    homepage: "https://github.com/mufeez-amjad/lin"
+    tap:
+      owner: mufeez-amjad
+      name: homebrew-mufeez-amjad
+    commit_author:
+      name: Mufeez Amjad
+      email: mufeez.amjad@outlook.com
+
+checksum:
+  name_template: 'checksums.txt'
+
