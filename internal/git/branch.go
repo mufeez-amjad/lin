@@ -37,26 +37,6 @@ func CheckoutBranch(branchName string) error {
 		return fmt.Errorf("Error checking branch existence: %v\n", err)
 	}
 
-	// If the branch doesn't exist, create it
-	if !branchExists {
-		// Create a new branch from the current HEAD
-		headRef, err := r.Head()
-		if err != nil {
-			fmt.Printf("Error getting HEAD reference: %v\n", err)
-			os.Exit(1)
-		}
-
-		newBranchRef := plumbing.NewBranchReferenceName(branchName)
-		branch := plumbing.NewHashReference(newBranchRef, headRef.Hash())
-
-		if err := r.Storer.SetReference(branch); err != nil {
-			fmt.Printf("Error creating branch: %v\n", err)
-			os.Exit(1)
-		}
-
-		fmt.Printf("Created branch '%s'\n", branchName)
-	}
-
 	// Checkout the branch
 	w, err := r.Worktree()
 	if err != nil {
@@ -66,6 +46,7 @@ func CheckoutBranch(branchName string) error {
 
 	err = w.Checkout(&git.CheckoutOptions{
 		Branch: plumbing.ReferenceName(fmt.Sprintf("refs/heads/%s", branchName)),
+		Create: !branchExists,
 		Keep:   true,
 	})
 	if err != nil {

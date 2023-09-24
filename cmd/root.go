@@ -372,6 +372,7 @@ var rootCmd = &cobra.Command{
 		m.list.Title = "Assigned Issues"
 		m.list.Styles.Title = m.list.Styles.Title.Background(linearPurple)
 		m.list.SetShowHelp(false)
+		m.list.SetShowStatusBar(false)
 
 		if len(issues) > 0 {
 			m.updateList(issues)
