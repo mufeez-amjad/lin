@@ -148,11 +148,18 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 }
 
 type model struct {
-	list       list.Model
-	keys       tui.KeyMap
-	issueView  viewport.Model
-	help       help.Model
-	activePane pane
+	// Models
+	list      list.Model
+	issueView viewport.Model
+	help      help.Model
+
+	pulls list.Model
+
+	// Helpers
+	keys tui.KeyMap
+
+	activePane           pane
+	selectingPullRequest bool
 
 	gqlClient linear.GqlClient
 	loading   bool
@@ -184,17 +191,48 @@ func (m *model) updatePane() {
 	delegate.Styles.SelectedDesc = delegate.Styles.SelectedTitle
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var issue *linear.Issue
+type Attachment struct {
+	data *linear.Attachment
+}
 
-	selectedItem := m.list.SelectedItem()
-	if selectedItem != nil {
-		issue = selectedItem.(Issue).Data()
+func (a Attachment) Title() string       { return a.data.Title }
+func (a Attachment) Description() string { return a.data.Title }
+func (a Attachment) FilterValue() string { return a.Title() + a.Description() }
+
+func (m model) selectPullRequest() {
+	if !m.selectingPullRequest {
+		m.pulls.SetItems([]list.Item{})
+		return
 	}
+
+	pulls := []list.Item{}
+	for _, attachment := range m.GetSelectedIssue().Attachments {
+		pulls = append(pulls, Attachment{
+			data: attachment,
+		})
+	}
+
+	m.pulls = list.New(pulls, list.NewDefaultDelegate(), 0, 0)
+}
+
+func (m model) GetSelectedIssue() *linear.Issue {
+	selectedItem := m.list.SelectedItem()
+	if selectedItem == nil {
+		return &linear.Issue{}
+	}
+
+	return selectedItem.(Issue).Data()
+}
+
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	issue := m.GetSelectedIssue()
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
+		case key.Matches(msg, m.keys.P):
+			m.selectingPullRequest = !m.selectingPullRequest
+			m.selectPullRequest()
 		case key.Matches(msg, m.keys.Tab):
 			m.updatePane()
 		case key.Matches(msg, m.keys.Up):
@@ -324,11 +362,17 @@ func (m *model) refresh() (cmd tea.Cmd) {
 func (m model) View() string {
 	help := m.help.ShortHelpView(m.keys.ShortHelp())
 
-	return lipgloss.JoinHorizontal(
+	render := lipgloss.JoinHorizontal(
 		0.4,
 		listStyle.Render(m.list.View()),
 		m.issueView.View(),
 	) + "\n" + helpStyle.Render(help)
+
+	if m.selectingPullRequest {
+		render = tui.PlaceOverlay(30, 40, m.pulls.View(), render, false)
+	}
+
+	return render
 }
 
 var rootCmd = &cobra.Command{

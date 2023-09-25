@@ -72,6 +72,8 @@ type getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssue struct {
 	BranchName string `json:"branchName"`
 	// Issue URL.
 	Url string `json:"url"`
+	// Attachments associated with the issue.
+	Attachments getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnection `json:"attachments"`
 }
 
 // GetId returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssue.Id, and is useful for accessing the field via an interface.
@@ -101,6 +103,56 @@ func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssue) Get
 
 // GetUrl returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssue.Url, and is useful for accessing the field via an interface.
 func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssue) GetUrl() string {
+	return v.Url
+}
+
+// GetAttachments returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssue.Attachments, and is useful for accessing the field via an interface.
+func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssue) GetAttachments() getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnection {
+	return v.Attachments
+}
+
+// getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnection includes the requested fields of the GraphQL type AttachmentConnection.
+type getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnection struct {
+	Nodes []getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment `json:"nodes"`
+}
+
+// GetNodes returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnection.Nodes, and is useful for accessing the field via an interface.
+func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnection) GetNodes() []getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment {
+	return v.Nodes
+}
+
+// getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment includes the requested fields of the GraphQL type Attachment.
+// The GraphQL type's documentation follows.
+//
+// Issue attachment (e.g. support ticket, pull request).
+type getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment struct {
+	// Content for the title line in the Linear attachment widget.
+	Title string `json:"title"`
+	// Content for the subtitle line in the Linear attachment widget.
+	Subtitle string `json:"subtitle"`
+	// Custom metadata related to the attachment.
+	Metadata map[string]string `json:"metadata"`
+	// Location of the attachment which is also used as an identifier.
+	Url string `json:"url"`
+}
+
+// GetTitle returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment.Title, and is useful for accessing the field via an interface.
+func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment) GetTitle() string {
+	return v.Title
+}
+
+// GetSubtitle returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment.Subtitle, and is useful for accessing the field via an interface.
+func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment) GetSubtitle() string {
+	return v.Subtitle
+}
+
+// GetMetadata returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment.Metadata, and is useful for accessing the field via an interface.
+func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment) GetMetadata() map[string]string {
+	return v.Metadata
+}
+
+// GetUrl returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment.Url, and is useful for accessing the field via an interface.
+func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment) GetUrl() string {
 	return v.Url
 }
 
@@ -138,6 +190,14 @@ query getAssignedIssues ($cursor: String) {
 				description
 				branchName
 				url
+				attachments(filter: {sourceType:{in:["github","gitlab"]}}) {
+					nodes {
+						title
+						subtitle
+						metadata
+						url
+					}
+				}
 			}
 		}
 	}
