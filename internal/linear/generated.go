@@ -130,8 +130,6 @@ type getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmen
 	Title string `json:"title"`
 	// Content for the subtitle line in the Linear attachment widget.
 	Subtitle string `json:"subtitle"`
-	// Custom metadata related to the attachment.
-	Metadata map[string]string `json:"metadata"`
 	// Location of the attachment which is also used as an identifier.
 	Url string `json:"url"`
 }
@@ -144,11 +142,6 @@ func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttac
 // GetSubtitle returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment.Subtitle, and is useful for accessing the field via an interface.
 func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment) GetSubtitle() string {
 	return v.Subtitle
-}
-
-// GetMetadata returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment.Metadata, and is useful for accessing the field via an interface.
-func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment) GetMetadata() map[string]string {
-	return v.Metadata
 }
 
 // GetUrl returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment.Url, and is useful for accessing the field via an interface.
@@ -194,7 +187,6 @@ query getAssignedIssues ($cursor: String) {
 					nodes {
 						title
 						subtitle
-						metadata
 						url
 					}
 				}

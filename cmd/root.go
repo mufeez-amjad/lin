@@ -192,27 +192,33 @@ func (m *model) updatePane() {
 }
 
 type Attachment struct {
-	data *linear.Attachment
+	title string
+	data  *linear.Attachment
 }
 
-func (a Attachment) Title() string       { return a.data.Title }
-func (a Attachment) Description() string { return a.data.Title }
-func (a Attachment) FilterValue() string { return a.Title() + a.Description() }
+func (a *Attachment) Title() string       { return a.title }
+func (a *Attachment) Description() string { return "" }
+func (a *Attachment) FilterValue() string { return a.Title() + a.Description() }
 
-func (m model) selectPullRequest() {
+func (m model) selectPullRequest() []list.Item {
 	if !m.selectingPullRequest {
-		m.pulls.SetItems([]list.Item{})
-		return
+		// m.pulls.SetItems([]list.Item{})
+		return nil
 	}
 
-	pulls := []list.Item{}
-	for _, attachment := range m.GetSelectedIssue().Attachments {
-		pulls = append(pulls, Attachment{
-			data: attachment,
-		})
+	issueAttachments := m.GetSelectedIssue().Attachments
+
+	pulls := make([]list.Item, len(issueAttachments))
+	// pulls := []list.Item{}
+	for i, attachment := range issueAttachments {
+		pulls[i] = &Attachment{
+			title: attachment.Title,
+			data:  attachment,
+		}
 	}
 
-	m.pulls = list.New(pulls, list.NewDefaultDelegate(), 0, 0)
+	m.pulls.SetItems(pulls)
+	return pulls
 }
 
 func (m model) GetSelectedIssue() *linear.Issue {
@@ -232,10 +238,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, m.keys.P):
 			m.selectingPullRequest = !m.selectingPullRequest
-			m.selectPullRequest()
+			list := m.selectPullRequest()
+			m.pulls.SetItems(list)
 		case key.Matches(msg, m.keys.Tab):
 			m.updatePane()
 		case key.Matches(msg, m.keys.Up):
+			if m.selectingPullRequest {
+				var cmd tea.Cmd
+				m.pulls, cmd = m.pulls.Update(msg)
+				return m, cmd
+			}
+
 			if m.activePane == contentPane {
 				var cmd tea.Cmd
 				m.issueView, cmd = m.issueView.Update(msg)
@@ -253,6 +266,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			nextIssue := items[nextIdx].(Issue).data
 			m.updateIssueView(nextIssue)
 		case key.Matches(msg, m.keys.Down):
+			if m.selectingPullRequest {
+				var cmd tea.Cmd
+				m.pulls, cmd = m.pulls.Update(msg)
+				return m, cmd
+			}
+
 			if m.activePane == contentPane {
 				var cmd tea.Cmd
 				m.issueView, cmd = m.issueView.Update(msg)
@@ -369,7 +388,10 @@ func (m model) View() string {
 	) + "\n" + helpStyle.Render(help)
 
 	if m.selectingPullRequest {
-		render = tui.PlaceOverlay(30, 40, m.pulls.View(), render, false)
+		style := lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(linearPurple)
+		render = tui.PlaceOverlay(20, 15, style.Render(m.pulls.View()), render, false)
 	}
 
 	return render
@@ -400,6 +422,7 @@ var rootCmd = &cobra.Command{
 
 		m := model{
 			list:      list.New([]list.Item{}, itemDelegate{}, 0, 0),
+			pulls:     list.New([]list.Item{}, list.NewDefaultDelegate(), 50, 30),
 			keys:      tui.Keys,
 			issueView: viewport.New(issueViewWidth, 50),
 			gqlClient: linear.GetClient(),
@@ -417,6 +440,13 @@ var rootCmd = &cobra.Command{
 		m.list.Styles.Title = m.list.Styles.Title.Background(linearPurple)
 		m.list.SetShowHelp(false)
 		m.list.SetShowStatusBar(false)
+
+		m.pulls.Title = "Pull Requests"
+		m.pulls.SetShowHelp(false)
+		m.pulls.SetShowStatusBar(false)
+		m.pulls.SetStatusBarItemName("pull request", "pull requests")
+		m.pulls.SetFilteringEnabled(false)
+		m.pulls.SetShowTitle(false)
 
 		if len(issues) > 0 {
 			m.updateList(issues)

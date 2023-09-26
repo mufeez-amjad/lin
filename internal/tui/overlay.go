@@ -30,6 +30,16 @@ func getLines(s string) (lines []string, widest int) {
 	return lines, widest
 }
 
+func CalculateCenterCoordinates(foregroundLines []string, backgroundLines []string, foregroundWidth, backgroundWidth int) (int, int) {
+	// Calculate the x-coordinate to horizontally center the foreground text.
+	x := (backgroundWidth - foregroundWidth) / 2
+
+	// Calculate the y-coordinate to vertically center the foreground text.
+	y := (len(backgroundLines) - len(foregroundLines)) / 2
+
+	return x, y
+}
+
 // PlaceOverlay places fg on top of bg.
 func PlaceOverlay(
 	x, y int,
@@ -66,6 +76,8 @@ func PlaceOverlay(
 	// TODO: allow placement outside of the bg box?
 	x = clamp(x, 0, bgWidth-fgWidth)
 	y = clamp(y, 0, bgHeight-fgHeight)
+
+	x, y = CalculateCenterCoordinates(fgLines, bgLines, fgWidth, bgWidth)
 
 	ws := &whitespace{}
 	for _, opt := range opts {

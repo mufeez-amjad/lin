@@ -13,6 +13,4 @@ bindings:
     type: time.Time
   TimelessDate:
     type: time.Time
-  JSONObject:
-    type: map[string]string
 

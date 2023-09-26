@@ -63,7 +63,6 @@ query getAssignedIssues(
           nodes {
             title
             subtitle
-            metadata
             url
           }
         }
@@ -91,7 +90,6 @@ query getAssignedIssues(
 					Title:    attachment.Title,
 					Subtitle: attachment.Subtitle,
 					Url:      attachment.Url,
-					Metadata: attachment.Metadata,
 				})
 			}
 
