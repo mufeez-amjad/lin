@@ -200,12 +200,7 @@ func (a *Attachment) Title() string       { return a.title }
 func (a *Attachment) Description() string { return "" }
 func (a *Attachment) FilterValue() string { return a.Title() + a.Description() }
 
-func (m model) selectPullRequest() []list.Item {
-	if !m.selectingPullRequest {
-		// m.pulls.SetItems([]list.Item{})
-		return nil
-	}
-
+func (m model) getPullRequests() []list.Item {
 	issueAttachments := m.GetSelectedIssue().Attachments
 
 	pulls := make([]list.Item, len(issueAttachments))
@@ -217,7 +212,6 @@ func (m model) selectPullRequest() []list.Item {
 		}
 	}
 
-	m.pulls.SetItems(pulls)
 	return pulls
 }
 
@@ -237,9 +231,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.keys.P):
-			m.selectingPullRequest = !m.selectingPullRequest
-			list := m.selectPullRequest()
-			m.pulls.SetItems(list)
+			list := m.getPullRequests()
+
+			if len(list) == 1 {
+				util.OpenURL(list[0].(*Attachment).data.Url)
+			} else {
+				m.selectingPullRequest = !m.selectingPullRequest
+				m.pulls.SetItems(list)
+			}
 		case key.Matches(msg, m.keys.Tab):
 			m.updatePane()
 		case key.Matches(msg, m.keys.Up):
@@ -303,6 +302,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keys.CtrlR):
 			return m, m.refresh()
 		case key.Matches(msg, m.keys.Enter):
+			if m.selectingPullRequest {
+				pull := m.pulls.SelectedItem().(*Attachment).data
+				util.OpenURL(pull.Url)
+				m.selectingPullRequest = false
+				return m, nil
+			}
+
 			// Ignore if user is filtering
 			if m.list.SettingFilter() {
 				break
