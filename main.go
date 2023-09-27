@@ -1,7 +1,7 @@
 package main
 
 import (
-	"lin_cli/cmd"
+	rootCmd "lin_cli/cmd/root"
 	"lin_cli/internal/config"
 )
 
@@ -9,7 +9,7 @@ func main() {
 	// Read in globally-available config
 	config.GetConfig()
 
-	cmd.Execute()
+	rootCmd.Execute()
 
 	config.SaveConfig()
 }

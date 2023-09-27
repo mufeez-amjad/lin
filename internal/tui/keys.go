@@ -11,8 +11,8 @@ type KeyMap struct {
 	Tab   key.Binding
 	P     key.Binding
 	C     key.Binding
-	Quit  key.Binding
 	CtrlR key.Binding
+	Esc   key.Binding
 }
 
 func (k KeyMap) ShortHelp() []key.Binding {
@@ -59,5 +59,8 @@ var Keys = KeyMap{
 	Tab: key.NewBinding(
 		key.WithKeys("tab"),
 		key.WithHelp("tab:", "switch pane"),
+	),
+	Esc: key.NewBinding(
+		key.WithKeys("esc"),
 	),
 }

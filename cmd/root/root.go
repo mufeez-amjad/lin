@@ -1,4 +1,4 @@
-package cmd
+package root
 
 import (
 	"fmt"
@@ -58,7 +58,6 @@ type Issue struct {
 
 func (i Issue) Title() string       { return i.data.Identifier }
 func (i Issue) Description() string { return i.data.Title }
-func (i Issue) Data() *linear.Issue { return i.data }
 func (i Issue) FilterValue() string { return i.Title() + i.Description() }
 
 func splitIntoChunks(inputString string, chunkSize int) []string {
@@ -153,13 +152,12 @@ type model struct {
 	issueView viewport.Model
 	help      help.Model
 
-	pulls list.Model
+	pulls pulls
 
 	// Helpers
 	keys tui.KeyMap
 
-	activePane           pane
-	selectingPullRequest bool
+	activePane pane
 
 	gqlClient linear.GqlClient
 	loading   bool
@@ -191,63 +189,39 @@ func (m *model) updatePane() {
 	delegate.Styles.SelectedDesc = delegate.Styles.SelectedTitle
 }
 
-type Attachment struct {
-	title string
-	data  *linear.Attachment
-}
-
-func (a *Attachment) Title() string       { return a.title }
-func (a *Attachment) Description() string { return "" }
-func (a *Attachment) FilterValue() string { return a.Title() + a.Description() }
-
-func (m model) getPullRequests() []list.Item {
-	issueAttachments := m.GetSelectedIssue().Attachments
-
-	pulls := make([]list.Item, len(issueAttachments))
-	// pulls := []list.Item{}
-	for i, attachment := range issueAttachments {
-		pulls[i] = &Attachment{
-			title: attachment.Title,
-			data:  attachment,
-		}
-	}
-
-	return pulls
-}
-
 func (m model) GetSelectedIssue() *linear.Issue {
 	selectedItem := m.list.SelectedItem()
 	if selectedItem == nil {
 		return &linear.Issue{}
 	}
 
-	return selectedItem.(Issue).Data()
+	return selectedItem.(Issue).data
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
 	issue := m.GetSelectedIssue()
+
+	if m.pulls.selecting {
+		m.pulls, cmd = m.pulls.Update(msg)
+		return m, cmd
+	}
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.keys.P):
-			list := m.getPullRequests()
+			attachments := issue.Attachments
 
-			if len(list) == 1 {
-				util.OpenURL(list[0].(*Attachment).data.Url)
+			if len(attachments) == 1 {
+				util.OpenURL(attachments[0].Url)
 			} else {
-				m.selectingPullRequest = !m.selectingPullRequest
-				m.pulls.SetItems(list)
+				m.pulls.UpdateList(attachments)
+				m.pulls.selecting = true
 			}
 		case key.Matches(msg, m.keys.Tab):
 			m.updatePane()
 		case key.Matches(msg, m.keys.Up):
-			if m.selectingPullRequest {
-				var cmd tea.Cmd
-				m.pulls, cmd = m.pulls.Update(msg)
-				return m, cmd
-			}
-
 			if m.activePane == contentPane {
 				var cmd tea.Cmd
 				m.issueView, cmd = m.issueView.Update(msg)
@@ -265,12 +239,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			nextIssue := items[nextIdx].(Issue).data
 			m.updateIssueView(nextIssue)
 		case key.Matches(msg, m.keys.Down):
-			if m.selectingPullRequest {
-				var cmd tea.Cmd
-				m.pulls, cmd = m.pulls.Update(msg)
-				return m, cmd
-			}
-
 			if m.activePane == contentPane {
 				var cmd tea.Cmd
 				m.issueView, cmd = m.issueView.Update(msg)
@@ -302,13 +270,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keys.CtrlR):
 			return m, m.refresh()
 		case key.Matches(msg, m.keys.Enter):
-			if m.selectingPullRequest {
-				pull := m.pulls.SelectedItem().(*Attachment).data
-				util.OpenURL(pull.Url)
-				m.selectingPullRequest = false
-				return m, nil
-			}
-
 			// Ignore if user is filtering
 			if m.list.SettingFilter() {
 				break
@@ -322,7 +283,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.list.SetSize(msg.Width-h, msg.Height-v-2)
 	}
 
-	var cmd tea.Cmd
 	m.list, cmd = m.list.Update(msg)
 	m.issueView.Update(msg)
 	return m, cmd
@@ -393,7 +353,7 @@ func (m model) View() string {
 		m.issueView.View(),
 	) + "\n" + helpStyle.Render(help)
 
-	if m.selectingPullRequest {
+	if m.pulls.selecting {
 		style := lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(linearPurple)
@@ -426,9 +386,12 @@ var rootCmd = &cobra.Command{
 
 		delegate.Styles.NormalDesc = delegate.Styles.NormalDesc.MaxWidth(30)
 
+		pulls := pulls{}
+		pulls.Init()
+
 		m := model{
 			list:      list.New([]list.Item{}, itemDelegate{}, 0, 0),
-			pulls:     list.New([]list.Item{}, list.NewDefaultDelegate(), 50, 30),
+			pulls:     pulls,
 			keys:      tui.Keys,
 			issueView: viewport.New(issueViewWidth, 50),
 			gqlClient: linear.GetClient(),
@@ -446,13 +409,6 @@ var rootCmd = &cobra.Command{
 		m.list.Styles.Title = m.list.Styles.Title.Background(linearPurple)
 		m.list.SetShowHelp(false)
 		m.list.SetShowStatusBar(false)
-
-		m.pulls.Title = "Pull Requests"
-		m.pulls.SetShowHelp(false)
-		m.pulls.SetShowStatusBar(false)
-		m.pulls.SetStatusBarItemName("pull request", "pull requests")
-		m.pulls.SetFilteringEnabled(false)
-		m.pulls.SetShowTitle(false)
 
 		if len(issues) > 0 {
 			m.updateList(issues)
