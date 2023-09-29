@@ -103,6 +103,7 @@ func (p PullsModel) Update(msg tea.Msg) (PullsModel, tea.Cmd) {
 			return p, nil
 		case key.Matches(msg, p.keys.Enter):
 			util.OpenURL(pull.Url)
+			p.Selecting = false
 			break
 		default:
 			break
