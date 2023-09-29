@@ -1,4 +1,4 @@
-package cmd
+package root
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"lin_cli/cmd/root/pulls"
 	"lin_cli/internal/config"
 	"lin_cli/internal/git"
 	"lin_cli/internal/linear"
@@ -58,7 +59,6 @@ type Issue struct {
 
 func (i Issue) Title() string       { return i.data.Identifier }
 func (i Issue) Description() string { return i.data.Title }
-func (i Issue) Data() *linear.Issue { return i.data }
 func (i Issue) FilterValue() string { return i.Title() + i.Description() }
 
 func splitIntoChunks(inputString string, chunkSize int) []string {
@@ -148,10 +148,16 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 }
 
 type model struct {
-	list       list.Model
-	keys       tui.KeyMap
-	issueView  viewport.Model
-	help       help.Model
+	// Models
+	list      list.Model
+	issueView viewport.Model
+	help      help.Model
+
+	pulls pulls.PullsModel
+
+	// Helpers
+	keys tui.KeyMap
+
 	activePane pane
 
 	gqlClient linear.GqlClient
@@ -184,17 +190,37 @@ func (m *model) updatePane() {
 	delegate.Styles.SelectedDesc = delegate.Styles.SelectedTitle
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var issue *linear.Issue
-
+func (m model) GetSelectedIssue() *linear.Issue {
 	selectedItem := m.list.SelectedItem()
-	if selectedItem != nil {
-		issue = selectedItem.(Issue).Data()
+	if selectedItem == nil {
+		return &linear.Issue{}
+	}
+
+	return selectedItem.(Issue).data
+}
+
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	issue := m.GetSelectedIssue()
+
+	if m.pulls.Selecting {
+		m.pulls, cmd = m.pulls.Update(msg)
+		return m, cmd
 	}
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
+		case key.Matches(msg, m.keys.P):
+			attachments := issue.Attachments
+
+			if len(attachments) == 1 {
+				util.OpenURL(attachments[0].Url)
+			} else {
+				m.pulls.UpdateList(attachments)
+				m.pulls.Selecting = true
+			}
+			return m, nil
 		case key.Matches(msg, m.keys.Tab):
 			m.updatePane()
 		case key.Matches(msg, m.keys.Up):
@@ -259,7 +285,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.list.SetSize(msg.Width-h, msg.Height-v-2)
 	}
 
-	var cmd tea.Cmd
 	m.list, cmd = m.list.Update(msg)
 	m.issueView.Update(msg)
 	return m, cmd
@@ -324,11 +349,20 @@ func (m *model) refresh() (cmd tea.Cmd) {
 func (m model) View() string {
 	help := m.help.ShortHelpView(m.keys.ShortHelp())
 
-	return lipgloss.JoinHorizontal(
+	render := lipgloss.JoinHorizontal(
 		0.4,
 		listStyle.Render(m.list.View()),
 		m.issueView.View(),
 	) + "\n" + helpStyle.Render(help)
+
+	if m.pulls.Selecting {
+		style := lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(linearPurple)
+		render = tui.PlaceOverlay(0, 0, style.Render(m.pulls.View()), render, false)
+	}
+
+	return render
 }
 
 var rootCmd = &cobra.Command{
@@ -354,8 +388,12 @@ var rootCmd = &cobra.Command{
 
 		delegate.Styles.NormalDesc = delegate.Styles.NormalDesc.MaxWidth(30)
 
+		pulls := pulls.PullsModel{}
+		pulls.Init()
+
 		m := model{
 			list:      list.New([]list.Item{}, itemDelegate{}, 0, 0),
+			pulls:     pulls,
 			keys:      tui.Keys,
 			issueView: viewport.New(issueViewWidth, 50),
 			gqlClient: linear.GetClient(),

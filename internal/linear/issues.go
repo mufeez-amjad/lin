@@ -17,6 +17,14 @@ type Issue struct {
 	Description string
 	BranchName  string
 	Url         string
+	Attachments []*Attachment
+}
+
+type Attachment struct {
+	Title     string
+	Subtitle  string
+	Url       string
+	UpdatedAt time.Time
 }
 
 func (i *Issue) Serialize() ([]byte, error) {
@@ -30,34 +38,39 @@ func (i *Issue) Deserialize(data []byte) error {
 
 func GetIssues(client GqlClient) ([]*Issue, error) {
 	_ = `# @genqlient
-	query getAssignedIssues(
-		# @genqlient(omitempty: true)
-		$cursor: String
-	) {
-		viewer {
-			assignedIssues(after: $cursor, orderBy: updatedAt, filter: {
-				state: {
-				  type: {
-					in: ["started", "backlog"]
-				  }
-				}
-			}) {
-				pageInfo {
-				  hasNextPage
-				  endCursor
-				}
-				nodes {
-				  id
-				  identifier
-				  title
-				  description
-				  branchName
-				  url
-				}
-			}
-		}
-	}
-	`
+query getAssignedIssues(
+  # @genqlient(omitempty: true)
+  $cursor: String
+) {
+  viewer {
+    assignedIssues(
+      after: $cursor
+      orderBy: updatedAt
+      filter: { state: { type: { in: ["started", "backlog"] } } }
+    ) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      nodes {
+        id
+        identifier
+        title
+        description
+        branchName
+        url
+        attachments(filter: { sourceType: { in: ["github", "gitlab"] } }) {
+          nodes {
+            title
+            subtitle
+            url
+            updatedAt
+          }
+        }
+      }
+    }
+  }
+}`
 
 	issues := []*Issue{}
 	objs := []store.Serializable{}
@@ -71,6 +84,17 @@ func GetIssues(client GqlClient) ([]*Issue, error) {
 
 		assignedIssuesConnection := issuesResp.Viewer.AssignedIssues
 		for _, issue := range assignedIssuesConnection.Nodes {
+
+			attachments := []*Attachment{}
+			for _, attachment := range issue.Attachments.Nodes {
+				attachments = append(attachments, &Attachment{
+					Title:     attachment.Title,
+					Subtitle:  attachment.Subtitle,
+					Url:       attachment.Url,
+					UpdatedAt: attachment.UpdatedAt,
+				})
+			}
+
 			issue := &Issue{
 				Id:          issue.Id,
 				Identifier:  issue.Identifier,
@@ -78,6 +102,7 @@ func GetIssues(client GqlClient) ([]*Issue, error) {
 				Description: issue.Description,
 				BranchName:  issue.BranchName,
 				Url:         issue.Url,
+				Attachments: attachments,
 			}
 			issues = append(issues, issue)
 			objs = append(objs, issue)

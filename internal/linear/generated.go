@@ -4,6 +4,7 @@ package linear
 
 import (
 	"context"
+	"time"
 
 	"github.com/Khan/genqlient/graphql"
 )
@@ -72,6 +73,8 @@ type getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssue struct {
 	BranchName string `json:"branchName"`
 	// Issue URL.
 	Url string `json:"url"`
+	// Attachments associated with the issue.
+	Attachments getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnection `json:"attachments"`
 }
 
 // GetId returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssue.Id, and is useful for accessing the field via an interface.
@@ -102,6 +105,58 @@ func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssue) Get
 // GetUrl returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssue.Url, and is useful for accessing the field via an interface.
 func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssue) GetUrl() string {
 	return v.Url
+}
+
+// GetAttachments returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssue.Attachments, and is useful for accessing the field via an interface.
+func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssue) GetAttachments() getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnection {
+	return v.Attachments
+}
+
+// getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnection includes the requested fields of the GraphQL type AttachmentConnection.
+type getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnection struct {
+	Nodes []getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment `json:"nodes"`
+}
+
+// GetNodes returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnection.Nodes, and is useful for accessing the field via an interface.
+func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnection) GetNodes() []getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment {
+	return v.Nodes
+}
+
+// getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment includes the requested fields of the GraphQL type Attachment.
+// The GraphQL type's documentation follows.
+//
+// Issue attachment (e.g. support ticket, pull request).
+type getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment struct {
+	// Content for the title line in the Linear attachment widget.
+	Title string `json:"title"`
+	// Content for the subtitle line in the Linear attachment widget.
+	Subtitle string `json:"subtitle"`
+	// Location of the attachment which is also used as an identifier.
+	Url string `json:"url"`
+	// The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
+	// for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+	// been updated after creation.
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// GetTitle returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment.Title, and is useful for accessing the field via an interface.
+func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment) GetTitle() string {
+	return v.Title
+}
+
+// GetSubtitle returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment.Subtitle, and is useful for accessing the field via an interface.
+func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment) GetSubtitle() string {
+	return v.Subtitle
+}
+
+// GetUrl returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment.Url, and is useful for accessing the field via an interface.
+func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment) GetUrl() string {
+	return v.Url
+}
+
+// GetUpdatedAt returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment.UpdatedAt, and is useful for accessing the field via an interface.
+func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment) GetUpdatedAt() time.Time {
+	return v.UpdatedAt
 }
 
 // getAssignedIssuesViewerUserAssignedIssuesIssueConnectionPageInfo includes the requested fields of the GraphQL type PageInfo.
@@ -138,6 +193,14 @@ query getAssignedIssues ($cursor: String) {
 				description
 				branchName
 				url
+				attachments(filter: {sourceType:{in:["github","gitlab"]}}) {
+					nodes {
+						title
+						subtitle
+						url
+						updatedAt
+					}
+				}
 			}
 		}
 	}

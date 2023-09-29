@@ -9,13 +9,14 @@ type KeyMap struct {
 	Left  key.Binding
 	Enter key.Binding
 	Tab   key.Binding
+	P     key.Binding
 	C     key.Binding
-	Quit  key.Binding
 	CtrlR key.Binding
+	Esc   key.Binding
 }
 
 func (k KeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.C, k.Enter, k.CtrlR}
+	return []key.Binding{k.C, k.P, k.Enter, k.CtrlR}
 }
 
 func (k KeyMap) FullHelp() [][]key.Binding {
@@ -43,6 +44,10 @@ var Keys = KeyMap{
 		key.WithKeys("c"),
 		key.WithHelp("c:", "checkout branch"),
 	),
+	P: key.NewBinding(
+		key.WithKeys("p"),
+		key.WithHelp("p:", "open pull request"),
+	),
 	Enter: key.NewBinding(
 		key.WithKeys("enter"),
 		key.WithHelp("enter:", "open issue"),
@@ -54,5 +59,8 @@ var Keys = KeyMap{
 	Tab: key.NewBinding(
 		key.WithKeys("tab"),
 		key.WithHelp("tab:", "switch pane"),
+	),
+	Esc: key.NewBinding(
+		key.WithKeys("esc"),
 	),
 }
