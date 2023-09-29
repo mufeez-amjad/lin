@@ -2,11 +2,13 @@ package cmd
 
 import (
 	"fmt"
-	"lin_cli/internal/git"
-	"lin_cli/internal/linear"
 	"log"
 	"os"
 	"strings"
+
+	"lin_cli/internal/git"
+	"lin_cli/internal/linear"
+	"lin_cli/internal/tui/styles"
 
 	"github.com/charmbracelet/bubbles/paginator"
 	tea "github.com/charmbracelet/bubbletea"
@@ -83,7 +85,7 @@ func (m checkout) View() string {
 
 	style := lipgloss.NewStyle().
 		Bold(true).
-		Background(lipgloss.Color(linearPurple)).
+		Background(lipgloss.Color(styles.LinearPurple)).
 		Foreground(lipgloss.Color("#ffffff"))
 
 	start, end := m.paginator.GetSliceBounds(len(m.choices))
