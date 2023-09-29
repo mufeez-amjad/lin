@@ -4,6 +4,7 @@ package linear
 
 import (
 	"context"
+	"time"
 
 	"github.com/Khan/genqlient/graphql"
 )
@@ -132,6 +133,10 @@ type getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmen
 	Subtitle string `json:"subtitle"`
 	// Location of the attachment which is also used as an identifier.
 	Url string `json:"url"`
+	// The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
+	// for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+	// been updated after creation.
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // GetTitle returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment.Title, and is useful for accessing the field via an interface.
@@ -147,6 +152,11 @@ func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttac
 // GetUrl returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment.Url, and is useful for accessing the field via an interface.
 func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment) GetUrl() string {
 	return v.Url
+}
+
+// GetUpdatedAt returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment.UpdatedAt, and is useful for accessing the field via an interface.
+func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment) GetUpdatedAt() time.Time {
+	return v.UpdatedAt
 }
 
 // getAssignedIssuesViewerUserAssignedIssuesIssueConnectionPageInfo includes the requested fields of the GraphQL type PageInfo.
@@ -188,6 +198,7 @@ query getAssignedIssues ($cursor: String) {
 						title
 						subtitle
 						url
+						updatedAt
 					}
 				}
 			}

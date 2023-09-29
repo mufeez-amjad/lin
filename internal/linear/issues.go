@@ -21,10 +21,10 @@ type Issue struct {
 }
 
 type Attachment struct {
-	Title    string
-	Subtitle string
-	Metadata map[string]string
-	Url      string
+	Title     string
+	Subtitle  string
+	Url       string
+	UpdatedAt time.Time
 }
 
 func (i *Issue) Serialize() ([]byte, error) {
@@ -64,6 +64,7 @@ query getAssignedIssues(
             title
             subtitle
             url
+            updatedAt
           }
         }
       }
@@ -87,9 +88,10 @@ query getAssignedIssues(
 			attachments := []*Attachment{}
 			for _, attachment := range issue.Attachments.Nodes {
 				attachments = append(attachments, &Attachment{
-					Title:    attachment.Title,
-					Subtitle: attachment.Subtitle,
-					Url:      attachment.Url,
+					Title:     attachment.Title,
+					Subtitle:  attachment.Subtitle,
+					Url:       attachment.Url,
+					UpdatedAt: attachment.UpdatedAt,
 				})
 			}
 

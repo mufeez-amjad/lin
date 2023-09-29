@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"lin_cli/cmd/root/pulls"
 	"lin_cli/internal/config"
 	"lin_cli/internal/git"
 	"lin_cli/internal/linear"
@@ -152,7 +153,7 @@ type model struct {
 	issueView viewport.Model
 	help      help.Model
 
-	pulls pulls
+	pulls pulls.PullsModel
 
 	// Helpers
 	keys tui.KeyMap
@@ -202,7 +203,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	issue := m.GetSelectedIssue()
 
-	if m.pulls.selecting {
+	if m.pulls.Selecting {
 		m.pulls, cmd = m.pulls.Update(msg)
 		return m, cmd
 	}
@@ -217,8 +218,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				util.OpenURL(attachments[0].Url)
 			} else {
 				m.pulls.UpdateList(attachments)
-				m.pulls.selecting = true
+				m.pulls.Selecting = true
 			}
+			return m, nil
 		case key.Matches(msg, m.keys.Tab):
 			m.updatePane()
 		case key.Matches(msg, m.keys.Up):
@@ -353,11 +355,11 @@ func (m model) View() string {
 		m.issueView.View(),
 	) + "\n" + helpStyle.Render(help)
 
-	if m.pulls.selecting {
+	if m.pulls.Selecting {
 		style := lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(linearPurple)
-		render = tui.PlaceOverlay(20, 15, style.Render(m.pulls.View()), render, false)
+		render = tui.PlaceOverlay(0, 0, style.Render(m.pulls.View()), render, false)
 	}
 
 	return render
@@ -386,7 +388,7 @@ var rootCmd = &cobra.Command{
 
 		delegate.Styles.NormalDesc = delegate.Styles.NormalDesc.MaxWidth(30)
 
-		pulls := pulls{}
+		pulls := pulls.PullsModel{}
 		pulls.Init()
 
 		m := model{
