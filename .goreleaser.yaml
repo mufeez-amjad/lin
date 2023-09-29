@@ -26,3 +26,13 @@ brews:
 checksum:
   name_template: 'checksums.txt'
 
+changelog:
+  filters:
+    exclude:
+      - "^docs:"
+      - typo
+
+    include:
+      - "^feat:"
+      - "^fix:"
+
