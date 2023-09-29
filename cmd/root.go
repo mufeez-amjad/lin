@@ -1,4 +1,4 @@
-package root
+package cmd
 
 import (
 	"fmt"
@@ -12,6 +12,7 @@ import (
 	"lin_cli/internal/git"
 	"lin_cli/internal/linear"
 	"lin_cli/internal/tui"
+	"lin_cli/internal/tui/styles"
 	"lin_cli/internal/util"
 
 	"github.com/charmbracelet/bubbles/help"
@@ -39,9 +40,6 @@ var contentStyle = lipgloss.NewStyle().
 var selectedItemStyle lipgloss.Style
 
 var helpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("0")).MarginBottom(1)
-
-var linearPurple = lipgloss.Color("#5e63d7")
-var linearPurpleDarker = lipgloss.Color("#494b7b")
 
 var delegate = list.NewDefaultDelegate()
 
@@ -118,8 +116,8 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 
 	if selected {
 		title = titleStyle.
-			Foreground(linearPurple).
-			BorderLeftForeground(linearPurple).
+			Foreground(styles.LinearPurple).
+			BorderLeftForeground(styles.LinearPurple).
 			Render(i.data.Identifier)
 	} else {
 		title = titleStyle.Render(i.data.Identifier)
@@ -131,8 +129,8 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 	for i, chunk := range chunks {
 		if selected {
 			chunk = descriptionStyle.
-				Foreground(linearPurple).
-				BorderLeftForeground(linearPurple).
+				Foreground(styles.LinearPurple).
+				BorderLeftForeground(styles.LinearPurple).
 				Render(chunk)
 		} else {
 			chunk = descriptionStyle.Render(chunk)
@@ -174,13 +172,13 @@ func (m *model) updatePane() {
 		m.issueView.Style = contentStyle
 
 		delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.
-			Foreground(linearPurple).BorderLeftForeground(linearPurple)
+			Foreground(styles.LinearPurple).BorderLeftForeground(styles.LinearPurple)
 	} else {
 		m.activePane = contentPane
 
 		m.issueView.Style = lipgloss.NewStyle().
 			BorderStyle(lipgloss.RoundedBorder()).
-			BorderForeground(linearPurple)
+			BorderForeground(styles.LinearPurple)
 
 		delegate.Styles.SelectedTitle = selectedItemStyle.
 			Foreground(lipgloss.Color("0")).
@@ -358,7 +356,7 @@ func (m model) View() string {
 	if m.pulls.Selecting {
 		style := lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(linearPurple)
+			BorderForeground(styles.LinearPurple)
 		render = tui.PlaceOverlay(0, 0, style.Render(m.pulls.View()), render, false)
 	}
 
@@ -380,7 +378,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.
-			Foreground(linearPurple).BorderLeftForeground(linearPurple)
+			Foreground(styles.LinearPurple).BorderLeftForeground(styles.LinearPurple)
 
 		delegate.Styles.SelectedDesc = delegate.Styles.SelectedTitle
 
@@ -408,7 +406,7 @@ var rootCmd = &cobra.Command{
 			return m.keys.ShortHelp()
 		}
 		m.list.Title = "Assigned Issues"
-		m.list.Styles.Title = m.list.Styles.Title.Background(linearPurple)
+		m.list.Styles.Title = m.list.Styles.Title.Background(styles.LinearPurple)
 		m.list.SetShowHelp(false)
 		m.list.SetShowStatusBar(false)
 
