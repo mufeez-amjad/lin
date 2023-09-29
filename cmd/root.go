@@ -5,7 +5,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"strings"
 
 	"lin_cli/cmd/root/pulls"
 	"lin_cli/internal/config"
@@ -59,34 +58,6 @@ func (i Issue) Title() string       { return i.data.Identifier }
 func (i Issue) Description() string { return i.data.Title }
 func (i Issue) FilterValue() string { return i.Title() + i.Description() }
 
-func splitIntoChunks(inputString string, chunkSize int) []string {
-	words := strings.Fields(inputString) // Split the input into words
-	chunks := []string{}
-	currentChunk := ""
-
-	for _, word := range words {
-		// If adding the current word to the current chunk would exceed the chunk size,
-		// add the current chunk to the list of chunks and start a new chunk.
-		if len(currentChunk)+len(word)+1 > chunkSize {
-			chunks = append(chunks, strings.TrimSpace(currentChunk))
-			currentChunk = ""
-		}
-
-		// Add the word to the current chunk (with a space if not empty).
-		if currentChunk != "" {
-			currentChunk += " "
-		}
-		currentChunk += word
-	}
-
-	// Add the last chunk (if any).
-	if currentChunk != "" {
-		chunks = append(chunks, strings.TrimSpace(currentChunk))
-	}
-
-	return chunks
-}
-
 type itemDelegate struct{}
 
 func (d itemDelegate) Height() int                               { return 3 }
@@ -125,7 +96,7 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 
 	fmt.Fprintf(w, title)
 
-	chunks := splitIntoChunks(description, 30)
+	chunks := util.SplitIntoChunks(description, 30)
 	for i, chunk := range chunks {
 		if selected {
 			chunk = descriptionStyle.
@@ -197,14 +168,8 @@ func (m model) GetSelectedIssue() *linear.Issue {
 	return selectedItem.(Issue).data
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
+func (m model) HandleMsg(msg tea.Msg) (model, tea.Cmd) {
 	issue := m.GetSelectedIssue()
-
-	if m.pulls.Selecting {
-		m.pulls, cmd = m.pulls.Update(msg)
-		return m, cmd
-	}
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -281,6 +246,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		h, v := listStyle.GetFrameSize()
 		m.list.SetSize(msg.Width-h, msg.Height-v-2)
+	}
+
+	return m, nil
+}
+
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+
+	if m.pulls.Selecting {
+		m.pulls, cmd = m.pulls.Update(msg)
+		return m, cmd
+	}
+
+	if !m.list.SettingFilter() {
+		m, cmd = m.HandleMsg(msg)
 	}
 
 	m.list, cmd = m.list.Update(msg)
