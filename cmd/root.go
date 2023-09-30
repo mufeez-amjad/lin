@@ -194,9 +194,9 @@ func (m model) HandleMsg(msg tea.Msg) (model, tea.Cmd) {
 			}
 
 			idx := m.list.Index()
-			items := m.list.Items()
+			items := m.list.VisibleItems()
 
-			if idx == 0 {
+			if idx == 0 || len(items) == 0 {
 				break
 			}
 
@@ -211,9 +211,9 @@ func (m model) HandleMsg(msg tea.Msg) (model, tea.Cmd) {
 			}
 
 			idx := m.list.Index()
-			items := m.list.Items()
+			items := m.list.VisibleItems()
 
-			if idx == len(items)-1 {
+			if idx == len(items)-1 || len(items) == 0 {
 				break
 			}
 
@@ -261,10 +261,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if !m.list.SettingFilter() {
 		m, cmd = m.HandleMsg(msg)
+	} else {
+		// Update the content pane
+		issue := m.GetSelectedIssue()
+		m.updateIssueView(issue)
 	}
 
-	m.list, cmd = m.list.Update(msg)
-	m.issueView.Update(msg)
+	if m.activePane == contentPane {
+		m.issueView.Update(msg)
+	} else {
+		m.list, cmd = m.list.Update(msg)
+	}
+
 	return m, cmd
 }
 
