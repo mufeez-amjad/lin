@@ -343,8 +343,7 @@ func (m model) View() string {
 
 	if m.pulls.Selecting {
 		style := lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(styles.LinearPurple)
+			Background(styles.LinearPurple).Padding(1).PaddingBottom(0)
 		render = tui.PlaceOverlay(0, 0, style.Render(m.pulls.View()), render, false)
 	}
 

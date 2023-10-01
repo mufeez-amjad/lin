@@ -5,12 +5,14 @@ import (
 	"io"
 	"lin_cli/internal/linear"
 	"lin_cli/internal/tui"
+	"lin_cli/internal/tui/styles"
 	"lin_cli/internal/util"
 	"sort"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type PullsModel struct {
@@ -31,21 +33,43 @@ func (a Attachment) FilterValue() string { return a.Title() + a.Description() }
 
 type itemDelegate struct{}
 
-func (d itemDelegate) Height() int                             { return 1 }
-func (d itemDelegate) Spacing() int                            { return 1 }
-func (d itemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
+func (d itemDelegate) Height() int                               { return 1 }
+func (d itemDelegate) Spacing() int                              { return 1 }
+func (d itemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { return nil }
 func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
 	i, ok := listItem.(Attachment)
 	if !ok {
 		return
 	}
 
-	str := fmt.Sprintf("%d. %s ", index+1, i.Title())
+	getText := func(item Attachment, selected bool) string {
+		str := fmt.Sprintf("%d. %s ", index+1, item.Title())
+		if selected {
+			return fmt.Sprintf("- %s", str)
+		} else {
+			return fmt.Sprintf("  %s", str)
+		}
+	}
+
+	pageItems := m.VisibleItems()
+
+	longestLine := 0
+	for _, item := range pageItems {
+		longestLine = max(longestLine, len(getText(item.(Attachment), false)))
+	}
+
+	str := getText(i, index == m.Index())
+
+	padding := longestLine - len(str)
+	for i := 0; i < padding; i++ {
+		str += " "
+	}
 
 	if index == m.Index() {
-		fmt.Fprint(w, "> "+str)
+		style := lipgloss.NewStyle().Foreground(styles.LinearPurpleDark)
+		fmt.Fprint(w, style.Render(str))
 	} else {
-		fmt.Fprint(w, "  "+str)
+		fmt.Fprint(w, str)
 	}
 }
 
@@ -57,6 +81,10 @@ func (p *PullsModel) Init() tea.Cmd {
 	p.list.SetShowStatusBar(false)
 	p.list.SetStatusBarItemName("pull request", "pull requests")
 	p.list.SetFilteringEnabled(false)
+	p.list.SetShowTitle(false)
+	p.list.SetShowPagination(false)
+	p.list.Styles.NoItems = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#ffffff")).PaddingBottom(1)
 
 	return nil
 }
@@ -79,7 +107,7 @@ func (p *PullsModel) UpdateList(attachments []*linear.Attachment) {
 
 	delegate := itemDelegate{}
 	height := len(pulls)*delegate.Height() + (len(pulls)-1)*delegate.Spacing()
-	p.list.SetHeight(height + 4)
+	p.list.SetHeight(height + 1)
 }
 
 func (p *PullsModel) GetSelectedItem() *linear.Attachment {
@@ -115,5 +143,6 @@ func (p PullsModel) Update(msg tea.Msg) (PullsModel, tea.Cmd) {
 }
 
 func (p *PullsModel) View() string {
-	return p.list.View()
+	style := lipgloss.NewStyle() //.Background(styles.LinearPurpleDarker)
+	return style.Render(p.list.View())
 }
