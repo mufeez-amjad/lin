@@ -28,7 +28,7 @@ import (
 var issueViewWidth = 65
 var listStyle = lipgloss.NewStyle().
 	Border(lipgloss.HiddenBorder()).
-	Margin(2, 2).
+	Margin(2, 1).
 	Width(100 - issueViewWidth)
 
 var contentStyle = lipgloss.NewStyle().
@@ -64,16 +64,15 @@ func (d itemDelegate) Height() int                               { return 3 }
 func (d itemDelegate) Spacing() int                              { return 1 }
 func (d itemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { return nil }
 func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
-	borderStyle := lipgloss.NormalBorder()
-
 	baseStyle := lipgloss.NewStyle().
-		MarginLeft(2).
 		PaddingLeft(1).
 		BorderLeft(true).
-		BorderStyle(borderStyle)
+		BorderStyle(lipgloss.HiddenBorder())
 
-	titleStyle := baseStyle.Copy().Foreground(lipgloss.Color("#ffffff"))
-	descriptionStyle := baseStyle.Copy().Foreground(lipgloss.Color("#808080"))
+	titleStyle := baseStyle.Copy().
+		Foreground(styles.Secondary).UnsetBorderLeftForeground()
+	descriptionStyle := baseStyle.Copy().
+		Foreground(styles.Tertiary).UnsetBorderLeftForeground()
 
 	i, ok := listItem.(Issue)
 	if !ok {
@@ -85,10 +84,14 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 
 	selected := m.Cursor() == index%m.Paginator.PerPage
 
+	borderStyle := lipgloss.NormalBorder()
+
 	if selected {
 		title = titleStyle.
-			Foreground(styles.LinearPurple).
-			BorderLeftForeground(styles.LinearPurple).
+			Copy().
+			Foreground(styles.Primary).
+			BorderLeftForeground(styles.Primary).
+			BorderStyle(borderStyle).
 			Render(i.data.Identifier)
 	} else {
 		title = titleStyle.Render(i.data.Identifier)
@@ -100,8 +103,10 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 	for i, chunk := range chunks {
 		if selected {
 			chunk = descriptionStyle.
-				Foreground(styles.LinearPurple).
-				BorderLeftForeground(styles.LinearPurple).
+				Copy().
+				Foreground(styles.Primary).
+				BorderLeftForeground(styles.Primary).
+				BorderStyle(borderStyle).
 				Render(chunk)
 		} else {
 			chunk = descriptionStyle.Render(chunk)
@@ -110,7 +115,13 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 		fmt.Fprintf(w, "\n%s", chunk)
 
 		if i >= 1 && len(chunks) > 2 {
-			fmt.Fprintf(w, lipgloss.NewStyle().Foreground(lipgloss.Color("#808080")).Render("…"))
+			if selected {
+				style := lipgloss.NewStyle().Foreground(styles.Primary)
+				fmt.Fprintf(w, style.Render("…"))
+			} else {
+				style := lipgloss.NewStyle().Foreground(styles.Tertiary)
+				fmt.Fprintf(w, style.Render("…"))
+			}
 			break
 		}
 	}
@@ -343,7 +354,7 @@ func (m model) View() string {
 
 	if m.pulls.Selecting {
 		style := lipgloss.NewStyle().
-			Background(styles.LinearPurple).Padding(1).PaddingBottom(0)
+			Background(styles.OverlayBG).Padding(1).PaddingBottom(0)
 		render = tui.PlaceOverlay(0, 0, style.Render(m.pulls.View()), render, false)
 	}
 
@@ -393,7 +404,8 @@ var rootCmd = &cobra.Command{
 			return m.keys.ShortHelp()
 		}
 		m.list.Title = "Assigned Issues"
-		m.list.Styles.Title = m.list.Styles.Title.Background(styles.LinearPurple)
+		m.list.Styles.Title = m.list.Styles.Title.
+			Background(styles.Primary)
 		m.list.SetShowHelp(false)
 		m.list.SetShowStatusBar(false)
 

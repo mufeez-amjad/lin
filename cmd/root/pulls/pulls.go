@@ -66,10 +66,11 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 	}
 
 	if index == m.Index() {
-		style := lipgloss.NewStyle().Foreground(styles.LinearPurpleDark)
+		style := lipgloss.NewStyle().Foreground(styles.OverlayTextHighlighted)
 		fmt.Fprint(w, style.Render(str))
 	} else {
-		fmt.Fprint(w, str)
+		style := lipgloss.NewStyle().Foreground(styles.OverlayText)
+		fmt.Fprint(w, style.Render(str))
 	}
 }
 
@@ -84,7 +85,7 @@ func (p *PullsModel) Init() tea.Cmd {
 	p.list.SetShowTitle(false)
 	p.list.SetShowPagination(false)
 	p.list.Styles.NoItems = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#ffffff")).PaddingBottom(1)
+		Foreground(styles.OverlayText).PaddingBottom(1)
 
 	return nil
 }
@@ -143,6 +144,5 @@ func (p PullsModel) Update(msg tea.Msg) (PullsModel, tea.Cmd) {
 }
 
 func (p *PullsModel) View() string {
-	style := lipgloss.NewStyle() //.Background(styles.LinearPurpleDarker)
-	return style.Render(p.list.View())
+	return p.list.View()
 }
