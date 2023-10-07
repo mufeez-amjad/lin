@@ -142,6 +142,9 @@ type model struct {
 
 	gqlClient linear.GqlClient
 	loading   bool
+
+	// Data
+	org *linear.Organization
 }
 
 func (m model) Init() tea.Cmd {
@@ -244,7 +247,7 @@ func (m model) HandleMsg(msg tea.Msg) (model, tea.Cmd) {
 			}
 			return m, tea.Quit
 		case key.Matches(msg, m.keys.CtrlR):
-			return m, m.refresh()
+			return m, m.refreshIssues()
 		case key.Matches(msg, m.keys.Enter):
 			// Ignore if user is filtering
 			if m.list.SettingFilter() {
@@ -324,7 +327,7 @@ func (m *model) updateIssueView(issue *linear.Issue) error {
 	return nil
 }
 
-func (m *model) refresh() (cmd tea.Cmd) {
+func (m *model) refreshIssues() (cmd tea.Cmd) {
 	issuesAsync := make(chan []*linear.Issue, 1)
 	go func() {
 		i, err := linear.GetIssues(m.gqlClient)
@@ -341,6 +344,14 @@ func (m *model) refresh() (cmd tea.Cmd) {
 	}
 
 	return cmd
+}
+
+func (m *model) refreshOrg() {
+	org, err := linear.GetOrganization(m.gqlClient)
+	if err != nil {
+		fmt.Printf("Error retrieving issues: %v", err)
+	}
+	m.org = org
 }
 
 func (m model) View() string {
@@ -370,7 +381,12 @@ var rootCmd = &cobra.Command{
 			return
 		}
 
-		issues, needRefresh, err := linear.LoadIssues(linear.GetClient())
+		org, needRefreshOrg, err := linear.LoadOrg(linear.GetClient())
+		if err != nil {
+			log.Fatalf("Failed to open cache file: %v", err)
+		}
+
+		issues, needRefreshIssues, err := linear.LoadIssues(linear.GetClient())
 		if err != nil {
 			log.Fatalf("Failed to open cache file: %v", err)
 		}
@@ -394,7 +410,7 @@ var rootCmd = &cobra.Command{
 			issueView: viewport.New(issueViewWidth, 50),
 			gqlClient: linear.GetClient(),
 			help:      help.New(),
-			loading:   needRefresh,
+			loading:   needRefreshIssues || needRefreshOrg,
 		}
 		m.help.ShortSeparator = " • "
 
@@ -415,11 +431,16 @@ var rootCmd = &cobra.Command{
 		}
 
 		// TODO: make this non-blocking
-		if needRefresh || len(issues) == 0 {
-			m.refresh()
+		if needRefreshIssues || len(issues) == 0 {
+			m.refreshIssues()
 		}
 
 		p := tea.NewProgram(m, tea.WithAltScreen())
+
+		// TODO: make this non-blocking
+		if needRefreshOrg || org == nil {
+			m.refreshOrg()
+		}
 
 		if _, err := p.Run(); err != nil {
 			fmt.Println("Error running program:", err)
