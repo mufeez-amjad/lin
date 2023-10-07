@@ -2,22 +2,42 @@ package git
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
-func CheckoutBranch(branchName string) error {
+func getRepo() (*git.Repository, error) {
 	// Get the current working directory
 	cwd, err := os.Getwd()
 	if err != nil {
-		return fmt.Errorf("Error getting current working directory: %v\n", err)
+		return nil, fmt.Errorf("Error getting current working directory: %v\n", err)
 	}
 
 	r, err := git.PlainOpen(cwd)
 	if err != nil {
-		return fmt.Errorf("Error opening repository: %v\n", err)
+		return nil, fmt.Errorf("Error opening repository: %v\n", err)
+	}
+
+	return r, nil
+}
+
+func GetCurrentBranch() string {
+	r, err := getRepo()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	head, _ := r.Head()
+	return string(head.Name())
+}
+
+func CheckoutBranch(branchName string) error {
+	r, err := getRepo()
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	refs, err := r.Branches()

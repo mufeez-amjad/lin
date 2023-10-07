@@ -13,6 +13,8 @@ type Serializable interface {
 	Deserialize(data []byte) error
 }
 
+var CacheDirectory = xdg.CacheHome + "/lin"
+
 func getCache(filename string) (string, error) {
 	return xdg.CacheFile("/lin/" + filename)
 }

@@ -17,6 +17,26 @@ type __getAssignedIssuesInput struct {
 // GetCursor returns __getAssignedIssuesInput.Cursor, and is useful for accessing the field via an interface.
 func (v *__getAssignedIssuesInput) GetCursor() string { return v.Cursor }
 
+// __getOrganizationInput is used internally by genqlient
+type __getOrganizationInput struct {
+	Cursor string `json:"cursor,omitempty"`
+}
+
+// GetCursor returns __getOrganizationInput.Cursor, and is useful for accessing the field via an interface.
+func (v *__getOrganizationInput) GetCursor() string { return v.Cursor }
+
+// __teamStatesInput is used internally by genqlient
+type __teamStatesInput struct {
+	TeamId string `json:"teamId"`
+	Cursor string `json:"cursor,omitempty"`
+}
+
+// GetTeamId returns __teamStatesInput.TeamId, and is useful for accessing the field via an interface.
+func (v *__teamStatesInput) GetTeamId() string { return v.TeamId }
+
+// GetCursor returns __teamStatesInput.Cursor, and is useful for accessing the field via an interface.
+func (v *__teamStatesInput) GetCursor() string { return v.Cursor }
+
 // getAssignedIssuesResponse is returned by getAssignedIssues on success.
 type getAssignedIssuesResponse struct {
 	// The currently authenticated user.
@@ -177,6 +197,207 @@ func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionPageInfo) GetEn
 	return v.EndCursor
 }
 
+// getOrganizationResponse is returned by getOrganization on success.
+type getOrganizationResponse struct {
+	// The currently authenticated user.
+	Viewer getOrganizationViewerUser `json:"viewer"`
+}
+
+// GetViewer returns getOrganizationResponse.Viewer, and is useful for accessing the field via an interface.
+func (v *getOrganizationResponse) GetViewer() getOrganizationViewerUser { return v.Viewer }
+
+// getOrganizationViewerUser includes the requested fields of the GraphQL type User.
+// The GraphQL type's documentation follows.
+//
+// A user that has access to the the resources of an organization.
+type getOrganizationViewerUser struct {
+	// Organization the user belongs to.
+	Organization getOrganizationViewerUserOrganization `json:"organization"`
+}
+
+// GetOrganization returns getOrganizationViewerUser.Organization, and is useful for accessing the field via an interface.
+func (v *getOrganizationViewerUser) GetOrganization() getOrganizationViewerUserOrganization {
+	return v.Organization
+}
+
+// getOrganizationViewerUserOrganization includes the requested fields of the GraphQL type Organization.
+// The GraphQL type's documentation follows.
+//
+// An organization. Organizations are root-level objects that contain user accounts and teams.
+type getOrganizationViewerUserOrganization struct {
+	// Teams associated with the organization.
+	Teams getOrganizationViewerUserOrganizationTeamsTeamConnection `json:"teams"`
+}
+
+// GetTeams returns getOrganizationViewerUserOrganization.Teams, and is useful for accessing the field via an interface.
+func (v *getOrganizationViewerUserOrganization) GetTeams() getOrganizationViewerUserOrganizationTeamsTeamConnection {
+	return v.Teams
+}
+
+// getOrganizationViewerUserOrganizationTeamsTeamConnection includes the requested fields of the GraphQL type TeamConnection.
+type getOrganizationViewerUserOrganizationTeamsTeamConnection struct {
+	PageInfo getOrganizationViewerUserOrganizationTeamsTeamConnectionPageInfo    `json:"pageInfo"`
+	Nodes    []getOrganizationViewerUserOrganizationTeamsTeamConnectionNodesTeam `json:"nodes"`
+}
+
+// GetPageInfo returns getOrganizationViewerUserOrganizationTeamsTeamConnection.PageInfo, and is useful for accessing the field via an interface.
+func (v *getOrganizationViewerUserOrganizationTeamsTeamConnection) GetPageInfo() getOrganizationViewerUserOrganizationTeamsTeamConnectionPageInfo {
+	return v.PageInfo
+}
+
+// GetNodes returns getOrganizationViewerUserOrganizationTeamsTeamConnection.Nodes, and is useful for accessing the field via an interface.
+func (v *getOrganizationViewerUserOrganizationTeamsTeamConnection) GetNodes() []getOrganizationViewerUserOrganizationTeamsTeamConnectionNodesTeam {
+	return v.Nodes
+}
+
+// getOrganizationViewerUserOrganizationTeamsTeamConnectionNodesTeam includes the requested fields of the GraphQL type Team.
+// The GraphQL type's documentation follows.
+//
+// An organizational unit that contains issues.
+type getOrganizationViewerUserOrganizationTeamsTeamConnectionNodesTeam struct {
+	// The unique identifier of the entity.
+	Id string `json:"id"`
+	// The team's unique key. The key is used in URLs.
+	Key string `json:"key"`
+	// The team's name.
+	Name string `json:"name"`
+	// The team's color.
+	Color string `json:"color"`
+}
+
+// GetId returns getOrganizationViewerUserOrganizationTeamsTeamConnectionNodesTeam.Id, and is useful for accessing the field via an interface.
+func (v *getOrganizationViewerUserOrganizationTeamsTeamConnectionNodesTeam) GetId() string {
+	return v.Id
+}
+
+// GetKey returns getOrganizationViewerUserOrganizationTeamsTeamConnectionNodesTeam.Key, and is useful for accessing the field via an interface.
+func (v *getOrganizationViewerUserOrganizationTeamsTeamConnectionNodesTeam) GetKey() string {
+	return v.Key
+}
+
+// GetName returns getOrganizationViewerUserOrganizationTeamsTeamConnectionNodesTeam.Name, and is useful for accessing the field via an interface.
+func (v *getOrganizationViewerUserOrganizationTeamsTeamConnectionNodesTeam) GetName() string {
+	return v.Name
+}
+
+// GetColor returns getOrganizationViewerUserOrganizationTeamsTeamConnectionNodesTeam.Color, and is useful for accessing the field via an interface.
+func (v *getOrganizationViewerUserOrganizationTeamsTeamConnectionNodesTeam) GetColor() string {
+	return v.Color
+}
+
+// getOrganizationViewerUserOrganizationTeamsTeamConnectionPageInfo includes the requested fields of the GraphQL type PageInfo.
+type getOrganizationViewerUserOrganizationTeamsTeamConnectionPageInfo struct {
+	// Cursor representing the last result in the paginated results.
+	EndCursor string `json:"endCursor"`
+	// Indicates if there are more results when paginating forward.
+	HasNextPage bool `json:"hasNextPage"`
+}
+
+// GetEndCursor returns getOrganizationViewerUserOrganizationTeamsTeamConnectionPageInfo.EndCursor, and is useful for accessing the field via an interface.
+func (v *getOrganizationViewerUserOrganizationTeamsTeamConnectionPageInfo) GetEndCursor() string {
+	return v.EndCursor
+}
+
+// GetHasNextPage returns getOrganizationViewerUserOrganizationTeamsTeamConnectionPageInfo.HasNextPage, and is useful for accessing the field via an interface.
+func (v *getOrganizationViewerUserOrganizationTeamsTeamConnectionPageInfo) GetHasNextPage() bool {
+	return v.HasNextPage
+}
+
+// teamStatesResponse is returned by teamStates on success.
+type teamStatesResponse struct {
+	// One specific team.
+	Team teamStatesTeam `json:"team"`
+}
+
+// GetTeam returns teamStatesResponse.Team, and is useful for accessing the field via an interface.
+func (v *teamStatesResponse) GetTeam() teamStatesTeam { return v.Team }
+
+// teamStatesTeam includes the requested fields of the GraphQL type Team.
+// The GraphQL type's documentation follows.
+//
+// An organizational unit that contains issues.
+type teamStatesTeam struct {
+	// The states that define the workflow associated with the team.
+	States teamStatesTeamStatesWorkflowStateConnection `json:"states"`
+}
+
+// GetStates returns teamStatesTeam.States, and is useful for accessing the field via an interface.
+func (v *teamStatesTeam) GetStates() teamStatesTeamStatesWorkflowStateConnection { return v.States }
+
+// teamStatesTeamStatesWorkflowStateConnection includes the requested fields of the GraphQL type WorkflowStateConnection.
+type teamStatesTeamStatesWorkflowStateConnection struct {
+	PageInfo teamStatesTeamStatesWorkflowStateConnectionPageInfo             `json:"pageInfo"`
+	Nodes    []teamStatesTeamStatesWorkflowStateConnectionNodesWorkflowState `json:"nodes"`
+}
+
+// GetPageInfo returns teamStatesTeamStatesWorkflowStateConnection.PageInfo, and is useful for accessing the field via an interface.
+func (v *teamStatesTeamStatesWorkflowStateConnection) GetPageInfo() teamStatesTeamStatesWorkflowStateConnectionPageInfo {
+	return v.PageInfo
+}
+
+// GetNodes returns teamStatesTeamStatesWorkflowStateConnection.Nodes, and is useful for accessing the field via an interface.
+func (v *teamStatesTeamStatesWorkflowStateConnection) GetNodes() []teamStatesTeamStatesWorkflowStateConnectionNodesWorkflowState {
+	return v.Nodes
+}
+
+// teamStatesTeamStatesWorkflowStateConnectionNodesWorkflowState includes the requested fields of the GraphQL type WorkflowState.
+// The GraphQL type's documentation follows.
+//
+// A state in a team workflow.
+type teamStatesTeamStatesWorkflowStateConnectionNodesWorkflowState struct {
+	// The unique identifier of the entity.
+	Id string `json:"id"`
+	// The state's name.
+	Name string `json:"name"`
+	// The state's UI color as a HEX string.
+	Color string `json:"color"`
+	// The type of the state.
+	Type string `json:"type"`
+	// The position of the state in the team flow.
+	Position float64 `json:"position"`
+}
+
+// GetId returns teamStatesTeamStatesWorkflowStateConnectionNodesWorkflowState.Id, and is useful for accessing the field via an interface.
+func (v *teamStatesTeamStatesWorkflowStateConnectionNodesWorkflowState) GetId() string { return v.Id }
+
+// GetName returns teamStatesTeamStatesWorkflowStateConnectionNodesWorkflowState.Name, and is useful for accessing the field via an interface.
+func (v *teamStatesTeamStatesWorkflowStateConnectionNodesWorkflowState) GetName() string {
+	return v.Name
+}
+
+// GetColor returns teamStatesTeamStatesWorkflowStateConnectionNodesWorkflowState.Color, and is useful for accessing the field via an interface.
+func (v *teamStatesTeamStatesWorkflowStateConnectionNodesWorkflowState) GetColor() string {
+	return v.Color
+}
+
+// GetType returns teamStatesTeamStatesWorkflowStateConnectionNodesWorkflowState.Type, and is useful for accessing the field via an interface.
+func (v *teamStatesTeamStatesWorkflowStateConnectionNodesWorkflowState) GetType() string {
+	return v.Type
+}
+
+// GetPosition returns teamStatesTeamStatesWorkflowStateConnectionNodesWorkflowState.Position, and is useful for accessing the field via an interface.
+func (v *teamStatesTeamStatesWorkflowStateConnectionNodesWorkflowState) GetPosition() float64 {
+	return v.Position
+}
+
+// teamStatesTeamStatesWorkflowStateConnectionPageInfo includes the requested fields of the GraphQL type PageInfo.
+type teamStatesTeamStatesWorkflowStateConnectionPageInfo struct {
+	// Cursor representing the last result in the paginated results.
+	EndCursor string `json:"endCursor"`
+	// Indicates if there are more results when paginating forward.
+	HasNextPage bool `json:"hasNextPage"`
+}
+
+// GetEndCursor returns teamStatesTeamStatesWorkflowStateConnectionPageInfo.EndCursor, and is useful for accessing the field via an interface.
+func (v *teamStatesTeamStatesWorkflowStateConnectionPageInfo) GetEndCursor() string {
+	return v.EndCursor
+}
+
+// GetHasNextPage returns teamStatesTeamStatesWorkflowStateConnectionPageInfo.HasNextPage, and is useful for accessing the field via an interface.
+func (v *teamStatesTeamStatesWorkflowStateConnectionPageInfo) GetHasNextPage() bool {
+	return v.HasNextPage
+}
+
 // The query or mutation executed by getAssignedIssues.
 const getAssignedIssues_Operation = `
 query getAssignedIssues ($cursor: String) {
@@ -222,6 +443,103 @@ func getAssignedIssues(
 	var err error
 
 	var data getAssignedIssuesResponse
+	resp := &graphql.Response{Data: &data}
+
+	err = client.MakeRequest(
+		ctx,
+		req,
+		resp,
+	)
+
+	return &data, err
+}
+
+// The query or mutation executed by getOrganization.
+const getOrganization_Operation = `
+query getOrganization ($cursor: String) {
+	viewer {
+		organization {
+			teams(after: $cursor) {
+				pageInfo {
+					endCursor
+					hasNextPage
+				}
+				nodes {
+					id
+					key
+					name
+					color
+				}
+			}
+		}
+	}
+}
+`
+
+func getOrganization(
+	ctx context.Context,
+	client graphql.Client,
+	cursor string,
+) (*getOrganizationResponse, error) {
+	req := &graphql.Request{
+		OpName: "getOrganization",
+		Query:  getOrganization_Operation,
+		Variables: &__getOrganizationInput{
+			Cursor: cursor,
+		},
+	}
+	var err error
+
+	var data getOrganizationResponse
+	resp := &graphql.Response{Data: &data}
+
+	err = client.MakeRequest(
+		ctx,
+		req,
+		resp,
+	)
+
+	return &data, err
+}
+
+// The query or mutation executed by teamStates.
+const teamStates_Operation = `
+query teamStates ($teamId: String!, $cursor: String) {
+	team(id: $teamId) {
+		states(after: $cursor) {
+			pageInfo {
+				endCursor
+				hasNextPage
+			}
+			nodes {
+				id
+				name
+				color
+				type
+				position
+			}
+		}
+	}
+}
+`
+
+func teamStates(
+	ctx context.Context,
+	client graphql.Client,
+	teamId string,
+	cursor string,
+) (*teamStatesResponse, error) {
+	req := &graphql.Request{
+		OpName: "teamStates",
+		Query:  teamStates_Operation,
+		Variables: &__teamStatesInput{
+			TeamId: teamId,
+			Cursor: cursor,
+		},
+	}
+	var err error
+
+	var data teamStatesResponse
 	resp := &graphql.Response{Data: &data}
 
 	err = client.MakeRequest(

@@ -115,7 +115,7 @@ query getAssignedIssues(
 		cursor = pageInfo.EndCursor
 	}
 
-	err := store.WriteObjectToFile("./cache", objs)
+	err := store.WriteObjectToFile("./issues.cache", objs)
 	if err != nil {
 		log.Fatalf("Failed to write to cache")
 	}
@@ -126,7 +126,7 @@ query getAssignedIssues(
 // Retrieves issues from cache
 func LoadIssues(client graphql.Client) (issues []*Issue, needRefresh bool, err error) {
 	var lastCached time.Time
-	issues, lastCached, err = store.ReadObjectFromFile[*Issue]("./cache", func() *Issue {
+	issues, lastCached, err = store.ReadObjectFromFile[*Issue]("./issues.cache", func() *Issue {
 		return &Issue{}
 	})
 
