@@ -12,8 +12,9 @@ func init() {
 }
 
 var debugCmd = &cobra.Command{
-	Use:   "debug",
-	Short: "Prints debugging information",
+	Use:    "debug",
+	Short:  "Prints debugging information",
+	Hidden: true,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("Cache directory: %s", store.CacheDirectory)
 	},
