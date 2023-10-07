@@ -49,14 +49,13 @@ var openCmd = &cobra.Command{
 			teamKeys = append(teamKeys, team.Key)
 		}
 
-		// Fetch issue identifier
-		var target *string
+		var issueId string
 		if len(args) > 0 {
-			target = &args[0]
+			issueId = strings.Trim(args[0], " ")
 		}
 
-		var issueId string
-		if target == nil || *target == "." {
+		// Fetch issue identifier
+		if issueId == "" {
 			branchName := git.GetCurrentBranch()
 			parseBranchNameForIssue(branchName, teamKeys)
 			if branchName == "main" || branchName == "master" {
@@ -78,6 +77,8 @@ var openCmd = &cobra.Command{
 				return
 			}
 		}
+
+		fmt.Printf("No issue found with identifier %s\n", issueId)
 	},
 }
 
