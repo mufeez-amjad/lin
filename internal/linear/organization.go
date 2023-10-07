@@ -7,8 +7,6 @@ import (
 	"lin_cli/internal/store"
 	"log"
 	"time"
-
-	"github.com/Khan/genqlient/graphql"
 )
 
 type Organization struct {
@@ -167,7 +165,7 @@ query teamStates(
 }
 
 // Retrieves issues from cache
-func LoadOrg(client graphql.Client) (org *Organization, needRefresh bool, err error) {
+func LoadOrg() (org *Organization, needRefresh bool, err error) {
 	var lastCached time.Time
 	orgs, lastCached, err := store.ReadObjectFromFile[*Organization]("./org.cache", func() *Organization {
 		return &Organization{}

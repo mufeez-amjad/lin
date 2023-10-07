@@ -31,7 +31,7 @@ func GetCurrentBranch() string {
 	}
 
 	head, _ := r.Head()
-	return string(head.Name())
+	return string(head.Name().Short())
 }
 
 func CheckoutBranch(branchName string) error {

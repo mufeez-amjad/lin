@@ -381,7 +381,7 @@ var rootCmd = &cobra.Command{
 			return
 		}
 
-		org, needRefreshOrg, err := linear.LoadOrg(linear.GetClient())
+		org, needRefreshOrg, err := linear.LoadOrg()
 		if err != nil {
 			log.Fatalf("Failed to open cache file: %v", err)
 		}
