@@ -161,13 +161,13 @@ func (m *model) updatePane() {
 	} else {
 		m.activePane = contentPane
 
-		m.issueView.Style = lipgloss.NewStyle().
+		m.issueView.Style = m.issueView.Style.Copy().
 			BorderStyle(lipgloss.RoundedBorder()).
-			BorderForeground(styles.LinearPurple)
+			BorderForeground(styles.Primary)
 
-		delegate.Styles.SelectedTitle = selectedItemStyle.
-			Foreground(lipgloss.Color("0")).
-			BorderLeftForeground(lipgloss.Color("0"))
+		delegate.Styles.SelectedTitle = selectedItemStyle.Copy().
+			Foreground(styles.Grey).
+			BorderLeftForeground(styles.Grey)
 	}
 
 	delegate.Styles.SelectedDesc = delegate.Styles.SelectedTitle
@@ -391,7 +391,7 @@ var rootCmd = &cobra.Command{
 			log.Fatalf("Failed to open cache file: %v", err)
 		}
 
-		delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.
+		delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.Copy().
 			Foreground(styles.LinearPurple).BorderLeftForeground(styles.LinearPurple)
 
 		delegate.Styles.SelectedDesc = delegate.Styles.SelectedTitle
