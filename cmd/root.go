@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"time"
 
 	"lin_cli/cmd/root/pulls"
 	"lin_cli/internal/config"
@@ -17,6 +18,7 @@ import (
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
@@ -25,22 +27,26 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var issueViewWidth = 65
-var listStyle = lipgloss.NewStyle().
-	Border(lipgloss.HiddenBorder()).
-	Margin(2, 1).
-	Width(100 - issueViewWidth)
+var (
+	issueViewWidth = 65
+	listStyle      = lipgloss.NewStyle().
+			Border(lipgloss.HiddenBorder()).
+			Margin(2, 1).
+			Width(100 - issueViewWidth)
 
-var contentStyle = lipgloss.NewStyle().
-	BorderStyle(lipgloss.RoundedBorder()).
-	BorderForeground(lipgloss.Color("0")).
-	PaddingRight(2)
+	contentStyle = lipgloss.NewStyle().
+			BorderStyle(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("0")).
+			PaddingRight(2)
 
-var selectedItemStyle lipgloss.Style
+	spinnerStyle = lipgloss.NewStyle().Foreground(styles.Primary)
 
-var helpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("0")).MarginBottom(1)
+	selectedItemStyle lipgloss.Style
 
-var delegate = list.NewDefaultDelegate()
+	helpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("0")).MarginBottom(1)
+
+	delegate = list.NewDefaultDelegate()
+)
 
 type pane int
 
@@ -142,13 +148,15 @@ type model struct {
 
 	gqlClient linear.GqlClient
 	loading   bool
+	spinner   spinner.Model
+	updateNum int
 
 	// Data
 	org *linear.Organization
 }
 
 func (m model) Init() tea.Cmd {
-	return nil
+	return m.spinner.Tick
 }
 
 func (m *model) updatePane() {
@@ -182,7 +190,7 @@ func (m model) GetSelectedIssue() *linear.Issue {
 	return selectedItem.(Issue).data
 }
 
-func (m model) HandleMsg(msg tea.Msg) (model, tea.Cmd) {
+func (m *model) HandleMsg(msg tea.Msg) (*model, tea.Cmd) {
 	issue := m.GetSelectedIssue()
 
 	switch msg := msg.(type) {
@@ -265,8 +273,16 @@ func (m model) HandleMsg(msg tea.Msg) (model, tea.Cmd) {
 	return m, nil
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
+
+	if m.loading {
+		switch msg := msg.(type) {
+		case spinner.TickMsg:
+			m.spinner, cmd = m.spinner.Update(msg)
+			return m, cmd
+		}
+	}
 
 	if m.pulls.Selecting {
 		m.pulls, cmd = m.pulls.Update(msg)
@@ -355,6 +371,11 @@ func (m *model) refreshOrg() {
 }
 
 func (m model) View() string {
+	if m.loading {
+		style := lipgloss.NewStyle().PaddingBottom(1)
+		return style.Render(m.spinner.View() + " Loading...")
+	}
+
 	help := m.help.ShortHelpView(m.keys.ShortHelp())
 
 	render := lipgloss.JoinHorizontal(
@@ -411,8 +432,12 @@ var rootCmd = &cobra.Command{
 			gqlClient: linear.GetClient(),
 			help:      help.New(),
 			loading:   needRefreshIssues || needRefreshOrg,
+			spinner:   spinner.New(),
+			org:       org,
 		}
 		m.help.ShortSeparator = " • "
+		m.spinner.Spinner = spinner.MiniDot
+		m.spinner.Style = spinnerStyle
 
 		m.issueView.Style = contentStyle
 
@@ -430,22 +455,36 @@ var rootCmd = &cobra.Command{
 			m.updateIssueView(issues[0])
 		}
 
-		// TODO: make this non-blocking
-		if needRefreshIssues || len(issues) == 0 {
-			m.refreshIssues()
-		}
+		var p *tea.Program
+		if needRefreshIssues || needRefreshOrg {
+			p = tea.NewProgram(&m)
+			go func() {
+				startTime := time.Now()
 
-		p := tea.NewProgram(m, tea.WithAltScreen())
-
-		// TODO: make this non-blocking
-		if needRefreshOrg || org == nil {
-			m.refreshOrg()
+				// TODO: make this non-blocking
+				if needRefreshIssues {
+					m.refreshIssues()
+				}
+				if needRefreshOrg {
+					m.refreshOrg()
+				}
+				loadingFor := time.Now().Sub(startTime)
+				// Show spinner for at least 1 second
+				if loadingFor < time.Second {
+					time.Sleep(time.Second - loadingFor)
+				}
+				m.loading = false
+				p.Send(tea.EnterAltScreen())
+			}()
+		} else {
+			p = tea.NewProgram(&m, tea.WithAltScreen())
 		}
 
 		if _, err := p.Run(); err != nil {
 			fmt.Println("Error running program:", err)
 			os.Exit(1)
 		}
+
 	},
 }
 

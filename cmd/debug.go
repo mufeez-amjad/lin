@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"lin_cli/internal/config"
 	"lin_cli/internal/store"
 
 	"github.com/spf13/cobra"
@@ -16,6 +17,7 @@ var debugCmd = &cobra.Command{
 	Short:  "Prints debugging information",
 	Hidden: true,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("Cache directory: %s", store.CacheDirectory)
+		fmt.Printf("Cache directory: %s\n", store.CacheDirectory)
+		fmt.Printf("Config directory: %s\n", config.ConfigDir)
 	},
 }

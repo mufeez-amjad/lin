@@ -17,16 +17,16 @@ type Config struct {
 var (
 	config     Config
 	initOnce   sync.Once
-	configDir  = xdg.ConfigHome + "/lin/"
+	ConfigDir  = xdg.ConfigHome + "/lin/"
 	configName = "config"
-	configPath = configDir + configName + ".yaml"
+	configPath = ConfigDir + configName + ".yaml"
 )
 
 func GetConfig() Config {
 	initOnce.Do(func() {
 		viper.SetConfigName(configName)
 		viper.SetConfigType("yaml")
-		viper.AddConfigPath(configDir)
+		viper.AddConfigPath(ConfigDir)
 		viper.AddConfigPath(".")
 
 		if err := viper.ReadInConfig(); err != nil {
@@ -53,9 +53,9 @@ func SaveConfig() {
 }
 
 func (c Config) Save() {
-	if _, err := os.Stat(configDir); err != nil {
+	if _, err := os.Stat(ConfigDir); err != nil {
 		if os.IsNotExist(err) {
-			os.Mkdir(configDir, 0700)
+			os.Mkdir(ConfigDir, 0700)
 		}
 	}
 
