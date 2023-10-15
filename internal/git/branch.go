@@ -5,8 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
+	git "github.com/libgit2/git2go/v34"
 )
 
 func getRepo() (*git.Repository, error) {
@@ -16,12 +15,7 @@ func getRepo() (*git.Repository, error) {
 		return nil, fmt.Errorf("Error getting current working directory: %v\n", err)
 	}
 
-	r, err := git.PlainOpen(cwd)
-	if err != nil {
-		return nil, fmt.Errorf("Error opening repository: %v\n", err)
-	}
-
-	return r, nil
+	return git.OpenRepository(cwd)
 }
 
 func GetCurrentBranch() string {
@@ -31,7 +25,37 @@ func GetCurrentBranch() string {
 	}
 
 	head, _ := r.Head()
-	return string(head.Name().Short())
+	return string(head.Name())
+}
+
+func doesBranchExist(repo *git.Repository, branchName string) (bool, error) {
+	refs, err := repo.NewReferenceIterator()
+	if err != nil {
+		return false, err
+	}
+
+	branchExists := false
+	for ref, err := refs.Next(); ref != nil; {
+		if err != nil {
+			return false, err
+		}
+
+		if !ref.IsBranch() {
+			continue
+		}
+
+		refName, err := ref.Branch().Name()
+		if err != nil {
+			return false, err
+		}
+
+		if refName == branchName {
+			branchExists = true
+			break
+		}
+	}
+
+	return branchExists, nil
 }
 
 func CheckoutBranch(branchName string) error {
@@ -39,39 +63,41 @@ func CheckoutBranch(branchName string) error {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer r.Free()
 
-	refs, err := r.Branches()
-	if err != nil {
-		return fmt.Errorf("Error getting branches: %v\n", err)
-	}
-
-	branchExists := false
-	err = refs.ForEach(func(ref *plumbing.Reference) error {
-		if ref.Name().Short() == branchName {
-			branchExists = true
-		}
-		return nil
-	})
-
+	branch, err := r.LookupBranch(branchName, git.BranchAll)
 	if err != nil {
 		return fmt.Errorf("Error checking branch existence: %v\n", err)
 	}
+	defer branch.Free()
 
-	// Checkout the branch
-	w, err := r.Worktree()
-	if err != nil {
-		fmt.Printf("Error getting worktree: %v\n", err)
-		os.Exit(1)
-	}
+	if branch != nil {
+		err = branch.Owner().CheckoutHead(&git.CheckoutOptions{
+			Strategy: git.CheckoutSafe,
+		})
+		if err != nil {
+			return fmt.Errorf("Failed to checkout existing branch: %s", err)
+		}
+	} else {
+		head, err := r.Head()
+		defer head.Free()
+		commit, err := r.LookupCommit(head.Target())
+		if err != nil {
+			// Handle the error
+		}
+		defer commit.Free()
 
-	err = w.Checkout(&git.CheckoutOptions{
-		Branch: plumbing.ReferenceName(fmt.Sprintf("refs/heads/%s", branchName)),
-		Create: !branchExists,
-		Keep:   true,
-	})
-	if err != nil {
-		fmt.Printf("Error checking out branch: %v\n", err)
-		os.Exit(1)
+		branch, err = r.CreateBranch(branchName, commit, false)
+		if err != nil {
+			return fmt.Errorf("Failed to create branch: %s", err)
+		}
+
+		err = branch.Owner().CheckoutHead(&git.CheckoutOptions{
+			Strategy: git.CheckoutSafe,
+		})
+		if err != nil {
+			return fmt.Errorf("Failed to checkout new branch: %s", err)
+		}
 	}
 
 	fmt.Printf("Checked out branch '%s'\n", branchName)
