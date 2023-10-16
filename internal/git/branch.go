@@ -60,18 +60,27 @@ func CheckoutBranch(branchName string) error {
 	// Checkout the branch
 	w, err := r.Worktree()
 	if err != nil {
-		fmt.Printf("Error getting worktree: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Error getting worktree: %s", err)
 	}
 
+	// Retrieve the base commit to reset changes to
+	commit, err := r.Head()
+
 	err = w.Checkout(&git.CheckoutOptions{
-		Branch: plumbing.ReferenceName(fmt.Sprintf("refs/heads/%s", branchName)),
+		Branch: plumbing.NewBranchReferenceName(branchName),
 		Create: !branchExists,
 		Keep:   true,
 	})
 	if err != nil {
-		fmt.Printf("Error checking out branch: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Error checking out branch: %s", err)
+	}
+
+	err = w.Reset(&git.ResetOptions{
+		Commit: commit.Hash(),
+		Mode:   git.SoftReset,
+	})
+	if err != nil {
+		log.Fatalf("Error checking out branch: %s", err)
 	}
 
 	fmt.Printf("Checked out branch '%s'\n", branchName)

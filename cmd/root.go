@@ -190,6 +190,19 @@ func (m model) GetSelectedIssue() *linear.Issue {
 	return selectedItem.(Issue).data
 }
 
+func (m *model) UpdateKeyBindings() {
+	keys := []*key.Binding{
+		&m.keys.P,
+		&m.keys.Tab,
+		&m.keys.C,
+	}
+
+	filtering := m.list.SettingFilter()
+	for _, key := range keys {
+		key.SetEnabled(!filtering)
+	}
+}
+
 func (m *model) HandleMsg(msg tea.Msg) (*model, tea.Cmd) {
 	issue := m.GetSelectedIssue()
 
@@ -270,7 +283,14 @@ func (m *model) HandleMsg(msg tea.Msg) (*model, tea.Cmd) {
 		m.list.SetSize(msg.Width-h, msg.Height-v-2)
 	}
 
-	return m, nil
+	var cmd tea.Cmd
+	if m.activePane == contentPane {
+		m.issueView.Update(msg)
+	} else {
+		m.list, cmd = m.list.Update(msg)
+	}
+
+	return m, cmd
 }
 
 func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -284,24 +304,18 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	m.UpdateKeyBindings()
+
 	if m.pulls.Selecting {
 		m.pulls, cmd = m.pulls.Update(msg)
 		return m, cmd
 	}
 
-	if !m.list.SettingFilter() {
-		m, cmd = m.HandleMsg(msg)
-	} else {
-		// Update the content pane
-		issue := m.GetSelectedIssue()
-		m.updateIssueView(issue)
-	}
+	m, cmd = m.HandleMsg(msg)
 
-	if m.activePane == contentPane {
-		m.issueView.Update(msg)
-	} else {
-		m.list, cmd = m.list.Update(msg)
-	}
+	// Update the content pane
+	issue := m.GetSelectedIssue()
+	m.updateIssueView(issue)
 
 	return m, cmd
 }
