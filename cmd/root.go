@@ -28,11 +28,11 @@ import (
 )
 
 var (
-	issueViewWidth = 100
+	issueViewWidth = 65
 	listStyle      = lipgloss.NewStyle().
 			Border(lipgloss.HiddenBorder()).
 			Margin(2, 1).
-			Width(100 - 65)
+			Width(100 - issueViewWidth)
 
 	contentStyle = lipgloss.NewStyle().
 			BorderStyle(lipgloss.RoundedBorder()).
