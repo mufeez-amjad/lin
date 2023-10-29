@@ -412,11 +412,6 @@ var rootCmd = &cobra.Command{
 	Use:   "lin",
 	Short: "lin is a CLI tool to interact with Linear",
 	Run: func(cmd *cobra.Command, args []string) {
-		if config.GetConfig().APIKey == "" {
-			fmt.Println("Please run the 'auth' subcommand to add your Linear API key.")
-			return
-		}
-
 		org, needRefreshOrg, err := linear.LoadOrg()
 		if err != nil {
 			log.Fatalf("Failed to open cache file: %v", err)
@@ -489,6 +484,7 @@ var rootCmd = &cobra.Command{
 					time.Sleep(time.Second - loadingFor)
 				}
 				m.loading = false
+				// TODO: clear Loading message
 				p.Send(tea.EnterAltScreen())
 			}()
 		} else {
@@ -505,6 +501,15 @@ var rootCmd = &cobra.Command{
 
 func Execute() {
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
+
+	if config.GetConfig().APIKey == "" {
+		authCmd.Run(nil, nil)
+		if config.GetConfig().APIKey == "" {
+			// Exited without entering API key
+			return
+		}
+	}
+
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
