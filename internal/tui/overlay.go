@@ -11,9 +11,7 @@ import (
 	"github.com/muesli/termenv"
 )
 
-// Most of this code is borrowed from
-// https://github.com/charmbracelet/lipgloss/pull/102
-// as well as the lipgloss library, with some modification for what I needed.
+// Most of this code is borrowed from https://github.com/charmbracelet/lipgloss/pull/102
 
 // Split a string into lines, additionally returning the size of the widest
 // line.

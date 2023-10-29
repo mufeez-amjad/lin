@@ -14,6 +14,7 @@ import (
 
 func init() {
 	rootCmd.AddCommand(openCmd)
+	openCmd.PersistentFlags().Bool("pr", false, "If provided, will open the PR for the target issue")
 }
 
 var openCmd = &cobra.Command{
@@ -70,10 +71,27 @@ var openCmd = &cobra.Command{
 			}
 		}
 
+		openPR, _ := cmd.Flags().GetBool("pr")
+
 		for _, issue := range issues {
 			if issue.Identifier == issueId {
-				fmt.Printf("Opening %s...\n", issue.Identifier)
-				util.OpenURL(issue.Url)
+				if openPR {
+					prs := issue.Attachments
+					switch len(prs) {
+					case 0:
+						fmt.Printf("No pull requests found for %s\n", issue.Identifier)
+						break
+					case 1:
+						util.OpenURL(prs[0].Url)
+						break
+					default:
+						// TODO: Open selector
+						break
+					}
+				} else {
+					fmt.Printf("Opening %s...\n", issue.Identifier)
+					util.OpenURL(issue.Url)
+				}
 				return
 			}
 		}
