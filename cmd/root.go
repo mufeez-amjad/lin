@@ -28,11 +28,11 @@ import (
 )
 
 var (
-	issueViewWidth = 65
+	issueViewWidth = 100
 	listStyle      = lipgloss.NewStyle().
 			Border(lipgloss.HiddenBorder()).
 			Margin(2, 1).
-			Width(100 - issueViewWidth)
+			Width(100 - 65)
 
 	contentStyle = lipgloss.NewStyle().
 			BorderStyle(lipgloss.RoundedBorder()).
@@ -43,7 +43,7 @@ var (
 
 	selectedItemStyle lipgloss.Style
 
-	helpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("0")).MarginBottom(1)
+	helpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("0")).MarginBottom(1).MarginLeft(1)
 
 	delegate = list.NewDefaultDelegate()
 )
@@ -281,6 +281,7 @@ func (m *model) HandleMsg(msg tea.Msg) (*model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		h, v := listStyle.GetFrameSize()
 		m.list.SetSize(msg.Width-h, msg.Height-v-2)
+		m.issueView.Height = msg.Height - 10
 	}
 
 	var cmd tea.Cmd
@@ -442,7 +443,7 @@ var rootCmd = &cobra.Command{
 			list:      list.New([]list.Item{}, itemDelegate{}, 0, 0),
 			pulls:     pulls,
 			keys:      tui.Keys,
-			issueView: viewport.New(issueViewWidth, 50),
+			issueView: viewport.New(issueViewWidth, 80),
 			gqlClient: linear.GetClient(),
 			help:      help.New(),
 			loading:   needRefreshIssues || needRefreshOrg,

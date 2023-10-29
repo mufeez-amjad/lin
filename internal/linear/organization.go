@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"lin_cli/internal/store"
 	"log"
-	"time"
 )
 
 type Organization struct {
@@ -166,17 +165,16 @@ query teamStates(
 
 // Retrieves issues from cache
 func LoadOrg() (org *Organization, needRefresh bool, err error) {
-	var lastCached time.Time
-	orgs, lastCached, err := store.ReadObjectFromFile[*Organization]("./org.cache", func() *Organization {
+	orgs, _, err := store.ReadObjectFromFile[*Organization]("./org.cache", func() *Organization {
 		return &Organization{}
 	})
 
 	if len(orgs) != 0 {
 		org = orgs[0]
+		needRefresh = false
+	} else {
+		needRefresh = true
 	}
-
-	isFresh := lastCached.Add(time.Hour * 12).Before(time.Now())
-	needRefresh = isFresh || org == nil
 
 	return org, needRefresh, err
 }
