@@ -3,11 +3,13 @@ package linear
 import (
 	"context"
 	"encoding/json"
+	"lin_cli/internal/git"
 	"lin_cli/internal/store"
 	"log"
 	"time"
 
 	"github.com/Khan/genqlient/graphql"
+	"github.com/cli/go-gh/v2/pkg/api"
 )
 
 type Issue struct {
@@ -18,6 +20,13 @@ type Issue struct {
 	BranchName  string
 	Url         string
 	Attachments []*Attachment
+	State       IssueState
+}
+
+type IssueState struct {
+	Id    string
+	Name  string
+	Color string
 }
 
 type Attachment struct {
@@ -34,6 +43,47 @@ func (i *Issue) Serialize() ([]byte, error) {
 func (i *Issue) Deserialize(data []byte) error {
 	err := json.Unmarshal(data, i)
 	return err
+}
+
+type GitStatus int
+
+const (
+	None GitStatus = iota
+	HasBranch
+	HasPR
+)
+
+func getPRStatus() {
+	client, err := api.DefaultRESTClient()
+	if err != nil {
+		log.Fatal(err)
+	}
+	response := []struct {
+		Name string
+	}{}
+	err = client.Get("repos/cli/cli/tags", &response)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func (i *Issue) GetGitStatus() GitStatus {
+	branches, err := git.FindBranches(i.Identifier)
+	if err != nil {
+		return None
+	}
+
+	hasBranch := len(branches) > 0
+	hasPR := len(i.Attachments) > 0
+
+	if hasBranch {
+		return HasBranch
+	}
+	if hasPR {
+		return HasPR
+	}
+
+	return None
 }
 
 func GetIssues(client GqlClient) ([]*Issue, error) {
@@ -59,6 +109,11 @@ query getAssignedIssues(
         description
         branchName
         url
+		state {
+			id
+			name
+			color
+		}
         attachments(filter: { sourceType: { in: ["github", "gitlab"] } }) {
           nodes {
             title
@@ -103,6 +158,11 @@ query getAssignedIssues(
 				BranchName:  issue.BranchName,
 				Url:         issue.Url,
 				Attachments: attachments,
+				State: IssueState{
+					Id:    issue.State.Id,
+					Name:  issue.State.Name,
+					Color: issue.State.Color,
+				},
 			}
 			issues = append(issues, issue)
 			objs = append(objs, issue)

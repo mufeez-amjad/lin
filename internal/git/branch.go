@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -85,4 +86,32 @@ func CheckoutBranch(branchName string) error {
 
 	fmt.Printf("Checked out branch '%s'\n", branchName)
 	return nil
+}
+
+func FindBranches(searchQuery string) ([]*plumbing.Reference, error) {
+	r, err := getRepo()
+	if err != nil {
+		return nil, err
+	}
+
+	refs, err := r.Branches()
+	if err != nil {
+		return nil, err
+	}
+	defer refs.Close()
+
+	var branches []*plumbing.Reference
+	for {
+		ref, err := refs.Next()
+		if err != nil {
+			break
+		}
+
+		branchName := ref.Name().Short()
+		if strings.Contains(strings.ToLower(branchName), strings.ToLower(searchQuery)) {
+			branches = append(branches, ref)
+		}
+	}
+
+	return branches, nil
 }

@@ -75,15 +75,30 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 		BorderLeft(true).
 		BorderStyle(lipgloss.HiddenBorder())
 
-	titleStyle := baseStyle.Copy().
-		Foreground(styles.Secondary).UnsetBorderLeftForeground()
-	descriptionStyle := baseStyle.Copy().
-		Foreground(styles.Tertiary).UnsetBorderLeftForeground()
-
 	i, ok := listItem.(Issue)
 	if !ok {
 		return
 	}
+
+	state := i.data.GetGitStatus()
+	stateStyle := lipgloss.NewStyle()
+
+	var stateText string
+	switch state {
+	case linear.HasPR:
+		stateStyle = stateStyle.Foreground(styles.Green)
+		stateText = "PR open"
+	case linear.HasBranch:
+		stateStyle = stateStyle.Foreground(styles.Orange)
+		stateText = "Checked out"
+	default:
+		break
+	}
+
+	titleStyle := baseStyle.Copy().
+		Foreground(styles.Secondary).UnsetBorderLeftForeground()
+	descriptionStyle := baseStyle.Copy().
+		Foreground(styles.Tertiary).UnsetBorderLeftForeground()
 
 	var title, description string
 	description = i.data.Title
@@ -92,6 +107,8 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 
 	borderStyle := lipgloss.NormalBorder()
 
+	containerWidth := 30
+
 	if selected {
 		title = titleStyle.
 			Copy().
@@ -99,13 +116,14 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 			BorderLeftForeground(styles.Primary).
 			BorderStyle(borderStyle).
 			Render(i.data.Identifier)
+
 	} else {
 		title = titleStyle.Render(i.data.Identifier)
 	}
 
-	fmt.Fprintf(w, title)
+	fmt.Fprintf(w, title+" "+stateStyle.Render(stateText))
 
-	chunks := util.SplitIntoChunks(description, 30)
+	chunks := util.SplitIntoChunks(description, containerWidth)
 	for i, chunk := range chunks {
 		if selected {
 			chunk = descriptionStyle.

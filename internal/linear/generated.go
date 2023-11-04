@@ -93,6 +93,8 @@ type getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssue struct {
 	BranchName string `json:"branchName"`
 	// Issue URL.
 	Url string `json:"url"`
+	// The workflow state that the issue is associated with.
+	State getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueStateWorkflowState `json:"state"`
 	// Attachments associated with the issue.
 	Attachments getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnection `json:"attachments"`
 }
@@ -125,6 +127,11 @@ func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssue) Get
 // GetUrl returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssue.Url, and is useful for accessing the field via an interface.
 func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssue) GetUrl() string {
 	return v.Url
+}
+
+// GetState returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssue.State, and is useful for accessing the field via an interface.
+func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssue) GetState() getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueStateWorkflowState {
+	return v.State
 }
 
 // GetAttachments returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssue.Attachments, and is useful for accessing the field via an interface.
@@ -177,6 +184,34 @@ func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttac
 // GetUpdatedAt returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment.UpdatedAt, and is useful for accessing the field via an interface.
 func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment) GetUpdatedAt() time.Time {
 	return v.UpdatedAt
+}
+
+// getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueStateWorkflowState includes the requested fields of the GraphQL type WorkflowState.
+// The GraphQL type's documentation follows.
+//
+// A state in a team workflow.
+type getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueStateWorkflowState struct {
+	// The unique identifier of the entity.
+	Id string `json:"id"`
+	// The state's name.
+	Name string `json:"name"`
+	// The state's UI color as a HEX string.
+	Color string `json:"color"`
+}
+
+// GetId returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueStateWorkflowState.Id, and is useful for accessing the field via an interface.
+func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueStateWorkflowState) GetId() string {
+	return v.Id
+}
+
+// GetName returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueStateWorkflowState.Name, and is useful for accessing the field via an interface.
+func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueStateWorkflowState) GetName() string {
+	return v.Name
+}
+
+// GetColor returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueStateWorkflowState.Color, and is useful for accessing the field via an interface.
+func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueStateWorkflowState) GetColor() string {
+	return v.Color
 }
 
 // getAssignedIssuesViewerUserAssignedIssuesIssueConnectionPageInfo includes the requested fields of the GraphQL type PageInfo.
@@ -414,6 +449,11 @@ query getAssignedIssues ($cursor: String) {
 				description
 				branchName
 				url
+				state {
+					id
+					name
+					color
+				}
 				attachments(filter: {sourceType:{in:["github","gitlab"]}}) {
 					nodes {
 						title

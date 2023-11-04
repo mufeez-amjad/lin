@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+
+	"github.com/charmbracelet/lipgloss"
 )
 
 func OpenURL(href string) error {
@@ -55,4 +57,29 @@ func SplitIntoChunks(inputString string, chunkSize int) []string {
 	}
 
 	return chunks
+}
+
+func RightAlignText(leftText, rightText string, totalWidth int) string {
+	leftLen := lipgloss.Width(leftText)
+	rightLen := lipgloss.Width(rightText)
+	if leftLen+rightLen > totalWidth {
+		return leftText
+	}
+
+	leftWidth := totalWidth - rightLen
+
+	// Create a strings.Builder to build the resulting string.
+	var builder strings.Builder
+
+	// Append leftText with spaces to fill the remaining width.
+	builder.WriteString(leftText)
+	spaces := leftWidth - leftLen
+	for i := 0; i < spaces; i++ {
+		builder.WriteByte(' ')
+	}
+
+	// Append rightText.
+	builder.WriteString(rightText)
+
+	return builder.String()
 }

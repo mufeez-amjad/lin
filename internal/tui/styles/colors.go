@@ -42,4 +42,14 @@ var (
 		Dark:  string(Grey.Light),
 		Light: string(White),
 	}
+
+	Green = lipgloss.AdaptiveColor{
+		Dark:  "#77DD77",
+		Light: "#56AE57",
+	}
+
+	Orange = lipgloss.AdaptiveColor{
+		Dark:  "#FFB347",
+		Light: "#EE7600",
+	}
 )
