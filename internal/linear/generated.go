@@ -437,7 +437,7 @@ func (v *teamStatesTeamStatesWorkflowStateConnectionPageInfo) GetHasNextPage() b
 const getAssignedIssues_Operation = `
 query getAssignedIssues ($cursor: String) {
 	viewer {
-		assignedIssues(after: $cursor, orderBy: updatedAt, filter: {state:{type:{in:["started","backlog"]}}}) {
+		assignedIssues(after: $cursor, orderBy: updatedAt, filter: {state:{type:{in:["backlog","unstarted","started"]}}}) {
 			pageInfo {
 				hasNextPage
 				endCursor

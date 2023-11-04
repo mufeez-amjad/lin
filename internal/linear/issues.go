@@ -96,7 +96,7 @@ query getAssignedIssues(
     assignedIssues(
       after: $cursor
       orderBy: updatedAt
-      filter: { state: { type: { in: ["started", "backlog"] } } }
+      filter: { state: { type: { in: ["backlog", "unstarted", "started"] } } }
     ) {
       pageInfo {
         hasNextPage
