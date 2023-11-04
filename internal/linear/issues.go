@@ -23,6 +23,15 @@ type Issue struct {
 	State       IssueState
 }
 
+func (i *Issue) Serialize() ([]byte, error) {
+	return json.Marshal(i)
+}
+
+func (i *Issue) Deserialize(data []byte) error {
+	err := json.Unmarshal(data, i)
+	return err
+}
+
 type IssueState struct {
 	Id    string
 	Name  string
@@ -34,15 +43,41 @@ type Attachment struct {
 	Subtitle  string
 	Url       string
 	UpdatedAt time.Time
+	Metadata  *AttachmentMetadata
 }
 
-func (i *Issue) Serialize() ([]byte, error) {
-	return json.Marshal(i)
+type GitLinkKind string
+
+const (
+	closes      GitLinkKind = "closes"
+	contributes GitLinkKind = "contributes"
+	links       GitLinkKind = "links"
+)
+
+type AttachmentMetadata struct {
+	Status   string
+	LinkKind GitLinkKind
 }
 
-func (i *Issue) Deserialize(data []byte) error {
-	err := json.Unmarshal(data, i)
-	return err
+func mapToAttachmentMetdata(data map[string]interface{}) (*AttachmentMetadata, error) {
+	var result AttachmentMetadata
+
+	for key, value := range data {
+		switch key {
+		case "status":
+			if str, ok := value.(string); ok {
+				result.Status = str
+			}
+		case "linkKind":
+			if val, ok := value.(string); ok {
+				result.LinkKind = GitLinkKind(val)
+			}
+		default:
+			// skip field
+		}
+	}
+
+	return &result, nil
 }
 
 type GitStatus int
@@ -74,7 +109,13 @@ func (i *Issue) GetGitStatus() GitStatus {
 	}
 
 	hasBranch := len(branches) > 0
-	hasPR := len(i.Attachments) > 0
+	var hasPR bool
+	for _, a := range i.Attachments {
+		if a.Metadata.LinkKind == links {
+			continue
+		}
+		hasPR = true
+	}
 
 	if hasBranch {
 		return HasBranch
@@ -120,6 +161,7 @@ query getAssignedIssues(
             subtitle
             url
             updatedAt
+			metadata
           }
         }
       }
@@ -142,11 +184,16 @@ query getAssignedIssues(
 
 			attachments := []*Attachment{}
 			for _, attachment := range issue.Attachments.Nodes {
+				metadata, err := mapToAttachmentMetdata(attachment.Metadata)
+				if err != nil {
+					metadata = &AttachmentMetadata{}
+				}
 				attachments = append(attachments, &Attachment{
 					Title:     attachment.Title,
 					Subtitle:  attachment.Subtitle,
 					Url:       attachment.Url,
 					UpdatedAt: attachment.UpdatedAt,
+					Metadata:  metadata,
 				})
 			}
 

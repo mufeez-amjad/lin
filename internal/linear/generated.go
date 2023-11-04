@@ -164,6 +164,8 @@ type getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmen
 	// for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
 	// been updated after creation.
 	UpdatedAt time.Time `json:"updatedAt"`
+	// Custom metadata related to the attachment.
+	Metadata map[string]interface{} `json:"metadata"`
 }
 
 // GetTitle returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment.Title, and is useful for accessing the field via an interface.
@@ -184,6 +186,11 @@ func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttac
 // GetUpdatedAt returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment.UpdatedAt, and is useful for accessing the field via an interface.
 func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment) GetUpdatedAt() time.Time {
 	return v.UpdatedAt
+}
+
+// GetMetadata returns getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment.Metadata, and is useful for accessing the field via an interface.
+func (v *getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueAttachmentsAttachmentConnectionNodesAttachment) GetMetadata() map[string]interface{} {
+	return v.Metadata
 }
 
 // getAssignedIssuesViewerUserAssignedIssuesIssueConnectionNodesIssueStateWorkflowState includes the requested fields of the GraphQL type WorkflowState.
@@ -460,6 +467,7 @@ query getAssignedIssues ($cursor: String) {
 						subtitle
 						url
 						updatedAt
+						metadata
 					}
 				}
 			}
