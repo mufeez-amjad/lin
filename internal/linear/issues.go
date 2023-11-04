@@ -117,11 +117,12 @@ func (i *Issue) GetGitStatus() GitStatus {
 		hasPR = true
 	}
 
-	if hasBranch {
-		return HasBranch
-	}
 	if hasPR {
 		return HasPR
+	}
+
+	if hasBranch {
+		return HasBranch
 	}
 
 	return None
