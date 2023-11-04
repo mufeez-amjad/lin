@@ -83,9 +83,19 @@ func mapToAttachmentMetdata(data map[string]interface{}) (*AttachmentMetadata, e
 type GitStatus int
 
 const (
-	None GitStatus = iota
-	HasBranch
-	HasPR
+	GitNone GitStatus = iota
+	GitHasBranch
+	GitHasPR
+)
+
+type PRStatus int
+
+const (
+	PRNone PRStatus = iota
+	PRDraft
+	PROpen
+	PRInReview
+	PRClosed
 )
 
 func getPRStatus() {
@@ -102,30 +112,42 @@ func getPRStatus() {
 	}
 }
 
-func (i *Issue) GetGitStatus() GitStatus {
+func (i *Issue) GetGitStatus() (GitStatus, PRStatus) {
 	branches, err := git.FindBranches(i.Identifier)
 	if err != nil {
-		return None
+		return GitNone, PRNone
 	}
 
 	hasBranch := len(branches) > 0
 	var hasPR bool
+	var prStatus PRStatus
 	for _, a := range i.Attachments {
-		if a.Metadata.LinkKind == links {
+		if a.Metadata.LinkKind == links || a.Metadata.Status == "closed" {
 			continue
+		}
+
+		switch a.Metadata.Status {
+		case "draft":
+			prStatus = max(prStatus, PRDraft)
+		case "open":
+			prStatus = max(prStatus, PROpen)
+		case "inReview":
+			prStatus = max(prStatus, PRInReview)
+		default:
+			prStatus = max(prStatus, PRNone)
 		}
 		hasPR = true
 	}
 
 	if hasPR {
-		return HasPR
+		return GitHasPR, prStatus
 	}
 
 	if hasBranch {
-		return HasBranch
+		return GitHasBranch, PRNone
 	}
 
-	return None
+	return GitNone, PRNone
 }
 
 func GetIssues(client GqlClient) ([]*Issue, error) {

@@ -80,15 +80,24 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 		return
 	}
 
-	state := i.data.GetGitStatus()
+	gitState, prState := i.data.GetGitStatus()
 	stateStyle := lipgloss.NewStyle()
 
 	var stateText string
-	switch state {
-	case linear.HasPR:
+	switch gitState {
+	case linear.GitHasPR:
 		stateStyle = stateStyle.Foreground(styles.Green)
-		stateText = "PR open"
-	case linear.HasBranch:
+		switch prState {
+		case linear.PRDraft:
+			stateText = "Draft PR"
+		case linear.PROpen:
+			stateText = "Open PR"
+		case linear.PRInReview:
+			stateText = "PR in review"
+		default:
+			stateText = ""
+		}
+	case linear.GitHasBranch:
 		stateStyle = stateStyle.Foreground(styles.Orange)
 		stateText = "Checked out"
 	default:
