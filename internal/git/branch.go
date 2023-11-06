@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
+	"regexp"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -88,7 +88,7 @@ func CheckoutBranch(branchName string) error {
 	return nil
 }
 
-func FindBranches(searchQuery string) ([]*plumbing.Reference, error) {
+func FindBranches(issueIdentifier string) ([]*plumbing.Reference, error) {
 	r, err := getRepo()
 	if err != nil {
 		return nil, err
@@ -100,6 +100,9 @@ func FindBranches(searchQuery string) ([]*plumbing.Reference, error) {
 	}
 	defer refs.Close()
 
+	pattern := fmt.Sprintf("(?mi)%s[^\\d]", issueIdentifier)
+	re := regexp.MustCompile(pattern)
+
 	var branches []*plumbing.Reference
 	for {
 		ref, err := refs.Next()
@@ -108,7 +111,7 @@ func FindBranches(searchQuery string) ([]*plumbing.Reference, error) {
 		}
 
 		branchName := ref.Name().Short()
-		if strings.Contains(strings.ToLower(branchName), strings.ToLower(searchQuery)) {
+		if len(re.FindStringIndex(branchName)) > 0 {
 			branches = append(branches, ref)
 		}
 	}

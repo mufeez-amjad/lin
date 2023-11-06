@@ -308,7 +308,10 @@ func (m *model) HandleMsg(msg tea.Msg) (*model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		h, v := listStyle.GetFrameSize()
 		m.list.SetSize(msg.Width-h, msg.Height-v-2)
-		m.issueView.Height = msg.Height - 10
+		newWidth, newHeight := msg.Width-40, msg.Height-10
+		m.issueView.Height = newHeight
+		m.issueView.Style.Width(newWidth)
+		m.issueView.Width = newWidth
 	}
 
 	var cmd tea.Cmd
