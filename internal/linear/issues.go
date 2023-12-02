@@ -158,6 +158,7 @@ query getAssignedIssues(
 ) {
   viewer {
     assignedIssues(
+      first: 50
       after: $cursor
       orderBy: updatedAt
       filter: { state: { type: { in: ["backlog", "unstarted", "started"] } } }
